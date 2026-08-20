@@ -1,0 +1,21 @@
+seed: 42
+
+model:
+  input_dim: 10
+  hidden_dim: 32
+  output_dim: 1
+
+training:
+  epochs: 5
+  batch_size: 32
+  learning_rate: 0.001
+
+validation:
+  split: 0.2
+
+data:
+  source: synthetic
+  n_samples: 256
+  noise: 0.1
+  path: data/raw/dataset.csv
+  target_column: target

@@ -11,18 +11,25 @@ source venv/bin/activate  # En Linux/Mac
 
 # Instalar dependencias
 pip install -r requirements.txt
+```
 
-🚀 Entrenamiento y Evaluación
+## Entrenamiento y evaluación
+
+```bash
 # Ejecutar entrenamiento del modelo principal
 python src/train.py --config configs/default.yaml
 
 # Ejecutar evaluación/test del modelo
 python src/evaluate.py --model_path models/best_model.pt
+```
 
-🧪 Pruebas y Calidad de Código
+## Pruebas y calidad de código
+
+```bash
 # Correr tests unitarios
 pytest tests/
 
 # Formateo e inspección de código
 black src/
 flake8 src/
+```

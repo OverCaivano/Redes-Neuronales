@@ -33,3 +33,12 @@ pytest tests/
 black src/
 flake8 src/
 ```
+
+## Bloque 1B: lectura e historia temporal de Favorita
+
+- `src/datos_favorita.py`: `leer_datos_favorita(ruta, tiendas=None, familias=None)` lee y valida el subconjunto seleccionado sin modificar el CSV.
+- `src/preprocesamiento_temporal.py`: ejecutar `generar_variables_historicas(datos)` antes de `dividir_por_fecha(resultado)`. El resultado incluye `datos`, `filas_entrada`, `filas_validas` y `filas_descartadas_historia`.
+- Se requieren siete dias calendario previos observados. Los huecos no se imputan. Las promociones del dia objetivo se suponen planificadas y conocidas al cierre del dia anterior.
+- Particiones por fecha objetivo: entrenamiento hasta 2017-06-15; validacion 2017-06-16 a 2017-07-15; test interno 2017-07-16 a 2017-08-15, desde 2013-01-01.
+- No incluye codificacion, escalado ni conexion al entrenamiento. Las pruebas utilizan fixtures pequenas.
+- Validacion completa en PowerShell: `.\venv\Scripts\python.exe -m pytest -q`.

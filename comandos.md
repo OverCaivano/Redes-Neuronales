@@ -74,3 +74,12 @@ flake8 src/
 - `collate_lote(indices, dataset=dataset)` selecciona las mismas posiciones en X e y y densifica solo esa seleccion; devuelve tensores float32 [B, D] y [B, 1]. Ignora etiquetas pandas: X e y deben llegar en el mismo orden.
 - `dataset.input_dim` se obtiene de X.shape[1]. El test de compatibilidad realiza un forward del MLP con no_grad, sin optimizador ni cambios de pesos. No se conecta entrenamiento ni se crean checkpoints nuevos del adaptador.
 - Pruebas completas: `.\venv\Scripts\python.exe -m pytest -q`. Revision: `git diff --check` y `git status`.
+
+## Bloque 1D-B: construccion de los tres loaders Favorita
+
+- `from src.loaders_favorita import construir_loaders_favorita`.
+- `resultado = construir_loaders_favorita(ruta="data/raw/train.csv", tiendas=[1, 2], familias=["AUTOMOTIVE", "BABY CARE", "BEAUTY"], batch_size=256, semilla=42, num_workers=0)`. Omitir filtros utiliza todas las series y conserva toda su historia.
+- `resultado.loaders` contiene entrenamiento, validacion y test; solo entrenamiento mezcla filas. `preparador`, `nombres_columnas`, `input_dim`, `metadatos`, `filas_entrada`, `filas_descartadas_historia` y `filas_por_particion` permiten inspeccionar la preparacion.
+- Se genera historia antes de dividir por las fechas fijadas; se ajusta una unica vez con entrenamiento. Particiones vacias o categorias desconocidas producen errores. CSR float32 y objetivos float32 [N,1] se validan sin densificacion completa.
+- Los metadatos id/fecha/tienda/familia estan alineados por posicion del Dataset; validacion/test mantienen ese orden. No asociar secuencialmente metadatos con lotes mezclados de entrenamiento. Se liberan tablas intermedias y se conserva familia como categoria en metadatos.
+- No entrena, no escribe datasets ni checkpoints. Tests: `.\venv\Scripts\python.exe -m pytest -q`. Revision: `git diff --check` y `git status`.

@@ -7,6 +7,7 @@ los archivos originales permanecen intactos.
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 from src.datos_favorita import ORDEN, validar_datos
@@ -16,6 +17,12 @@ VARIABLES_HISTORICAS = [
     "ventas_hace_1_dia",
     "ventas_hace_7_dias",
     "promedio_ventas_7_dias",
+]
+VARIABLES_CICLICAS = [
+    "dia_semana_seno",
+    "dia_semana_coseno",
+    "mes_seno",
+    "mes_coseno",
 ]
 PERIODOS = {
     "entrenamiento": ("2013-01-01", "2017-06-15"),
@@ -42,6 +49,11 @@ def generar_variables_historicas(datos):
     Cada serie se reindexa diariamente en memoria. Los huecos quedan como NaN;
     rolling con min_periods=7 exige las siete observaciones. Las fechas creadas
     solo sirven como contexto: nunca se convierten en objetivos artificiales.
+
+    Agrega ciclos desde la fecha objetivo: lunes=0 hasta domingo=6,
+    enero=0 hasta diciembre=11. Usa seno/coseno de 2*pi*indice/periodo,
+    con periodos 7 y 12 respectivamente, en [-1, 1]. No dependen de ventas
+    ni requieren ajuste; se conservan tambien en resultados vacios.
     """
     validar_datos(datos)
     ordenados = datos.sort_values(ORDEN)
@@ -68,6 +80,13 @@ def generar_variables_historicas(datos):
         resultado = ordenados.iloc[:0].copy()
         for columna in VARIABLES_HISTORICAS:
             resultado[columna] = pd.Series(dtype="float64")
+
+    angulo_semana = 2 * np.pi * resultado["fecha"].dt.dayofweek / 7
+    angulo_mes = 2 * np.pi * (resultado["fecha"].dt.month - 1) / 12
+    resultado["dia_semana_seno"] = np.sin(angulo_semana)
+    resultado["dia_semana_coseno"] = np.cos(angulo_semana)
+    resultado["mes_seno"] = np.sin(angulo_mes)
+    resultado["mes_coseno"] = np.cos(angulo_mes)
 
     return ResultadoTemporal(
         datos=resultado,

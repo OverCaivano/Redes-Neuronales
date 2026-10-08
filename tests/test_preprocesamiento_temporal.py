@@ -1,10 +1,12 @@
 """Causalidad y calendario con series pequenas construidas para estas pruebas."""
 
+import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
 from src.preprocesamiento_temporal import (
+    VARIABLES_CICLICAS,
     VARIABLES_HISTORICAS,
     dividir_por_fecha,
     generar_variables_historicas,
@@ -112,7 +114,7 @@ def test_historia_insuficiente_y_entrada_vacia(dias):
     resultado = generar_variables_historicas(crear_serie(dias=dias))
     assert resultado.datos.empty
     assert resultado.filas_descartadas_historia == dias
-    assert set(VARIABLES_HISTORICAS).issubset(resultado.datos.columns)
+    assert set(VARIABLES_HISTORICAS + VARIABLES_CICLICAS).issubset(resultado.datos.columns)
     assert all(parte.empty for parte in dividir_por_fecha(resultado).values())
 
 
@@ -151,3 +153,63 @@ def test_division_no_omite_fechas_fuera_del_periodo():
     resultado = generar_variables_historicas(crear_serie("2018-01-01"))
     with pytest.raises(ValueError, match="fuera del periodo"):
         dividir_por_fecha(resultado)
+
+
+@pytest.mark.parametrize(
+    "fecha,esperado",
+    [
+        ("2017-01-09", [0, 1, 0, 1]),  # Lunes, enero.
+        ("2017-04-03", [0, 1, 1, 0]),  # Lunes, abril.
+        ("2017-07-03", [0, 1, 0, -1]),  # Lunes, julio.
+        ("2016-10-03", [0, 1, -1, 0]),  # Lunes, octubre.
+        ("2016-12-25", [-0.7818314824680298, 0.6234898018587334,
+                        -0.5, 0.8660254037844386]),  # Domingo, diciembre.
+    ],
+)
+def test_ciclos_valores_desde_fecha_objetivo(fecha, esperado):
+    inicio = pd.Timestamp(fecha) - pd.Timedelta(days=7)
+    resultado = generar_variables_historicas(crear_serie(inicio, dias=8))
+    np.testing.assert_allclose(
+        resultado.datos.iloc[0][VARIABLES_CICLICAS].to_numpy(dtype=float),
+        esperado, atol=1e-12,
+    )
+
+
+def test_ciclos_periodicidad_semanal_y_anual():
+    datos = generar_variables_historicas(
+        crear_serie("2015-12-20", dias=750)
+    ).datos.set_index("fecha")
+    # Cruces domingo/lunes y diciembre/enero, incluyendo un anio bisiesto.
+    np.testing.assert_allclose(
+        datos.loc["2016-12-26":"2017-01-01", VARIABLES_CICLICAS[:2]],
+        datos.loc["2017-01-02":"2017-01-08", VARIABLES_CICLICAS[:2]],
+        atol=1e-12,
+    )
+    for mes in range(1, 13):
+        np.testing.assert_allclose(
+            datos.loc[pd.Timestamp(2016, mes, 15), VARIABLES_CICLICAS[2:]].to_numpy(dtype=float),
+            datos.loc[pd.Timestamp(2017, mes, 15), VARIABLES_CICLICAS[2:]].to_numpy(dtype=float),
+            atol=1e-12,
+        )
+
+
+@pytest.mark.parametrize("inicio_cambio", ["2017-01-08", "2017-01-09"])
+def test_ciclos_independientes_de_ventas_presentes_y_futuras(serie, inicio_cambio):
+    base = generar_variables_historicas(serie).datos
+    serie.loc[serie["fecha"].ge(inicio_cambio), "ventas_objetivo"] = 999999
+    alterada = generar_variables_historicas(serie).datos
+    assert_frame_equal(
+        base[["fecha"] + VARIABLES_CICLICAS],
+        alterada[["fecha"] + VARIABLES_CICLICAS],
+    )
+
+
+def test_ciclos_finitos_en_rango_y_conservados_en_particiones():
+    resultado = generar_variables_historicas(crear_serie("2016-01-01", dias=593))
+    valores = resultado.datos[VARIABLES_CICLICAS].to_numpy()
+    assert np.isfinite(valores).all()
+    assert ((valores >= -1) & (valores <= 1)).all()
+    assert resultado.filas_descartadas_historia == 7
+    partes = dividir_por_fecha(resultado)
+    reunidas = pd.concat(partes.values(), ignore_index=True)
+    assert_frame_equal(reunidas, resultado.datos.reset_index(drop=True))

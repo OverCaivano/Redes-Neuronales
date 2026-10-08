@@ -57,3 +57,12 @@ flake8 src/
 - `codificador.nombres_columnas` fija el orden: tiendas ascendentes y luego familias alfabeticas, conservando los nombres originales. Las categorias desconocidas producen un error claro.
 - Las matrices contienen solo tienda/familia. Conservan el orden de filas; fechas, objetivo y variables numericas siguen en las particiones originales. No incluye escalado ni conexion al MLP.
 - Tests: `.\venv\Scripts\python.exe -m pytest -q`.
+
+
+## Bloque 1C: escalado y entradas completas
+
+- `preparador, matrices = preparar_particiones(particiones)` en `src/transformaciones.py` ajusta one-hot y StandardScaler solo con entrenamiento; validacion/test reutilizan esas instancias sin reajuste.
+- Orden de `preparador.nombres_columnas`: ventas_hace_1_dia, ventas_hace_7_dias, promedio_ventas_7_dias, cantidad_en_promocion (escaladas); dia_semana_seno, dia_semana_coseno, mes_seno, mes_coseno (sin escalar); tiendas y familias one-hot (sin escalar).
+- `PreparadorEntradas.transformar(datos, tamano_bloque=100_000)` produce CSR float32 por bloques. Solo el bloque numerico/ciclico es denso temporalmente; nunca se densifica one-hot. Comprueba finitud y conserva la posicion de cada fila, incluso con indices repetidos.
+- Objetivos y metadatos permanecen intactos en las particiones. No hay log1p ni conexion al entrenamiento. `parametros_escalado` devuelve copias de media, varianza y escala.
+- El API anterior `codificar_particiones` sigue devolviendo solo categorias. Tests: `.\venv\Scripts\python.exe -m pytest -q`.

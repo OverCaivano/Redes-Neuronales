@@ -4,11 +4,16 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
-from scipy.sparse import isspmatrix_csr
-from sklearn.preprocessing import OneHotEncoder
+from scipy.sparse import isspmatrix_csr, csr_matrix
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.preprocesamiento_temporal import generar_variables_historicas, dividir_por_fecha
-from src.transformaciones import CodificadorCategorias, codificar_particiones
+from src.preprocesamiento_temporal import (
+    VARIABLES_CICLICAS, generar_variables_historicas, dividir_por_fecha,
+)
+from src.transformaciones import (
+    COLUMNAS_NUMERICAS, CodificadorCategorias, PreparadorEntradas,
+    codificar_particiones, preparar_particiones,
+)
 
 
 @pytest.fixture
@@ -143,3 +148,140 @@ def test_compatibilidad_con_historia_ciclos_y_particiones():
         # La fila codificada conserva alineacion con objetivo y metadatos.
         primera = codificador.transformar(datos.iloc[[0]])
         assert (matriz[0] != primera).nnz == 0
+
+
+
+@pytest.fixture
+def entradas_completas(entrenamiento):
+    datos = entrenamiento.copy()
+    for columna in COLUMNAS_NUMERICAS:
+        datos[columna] = [1.0, 3.0, 5.0]
+    for columna in VARIABLES_CICLICAS:
+        datos[columna] = [-0.5, 0.0, 1.0]
+    datos.index = [9, 2, 9]
+    return datos
+
+
+def test_escalado_valores_orden_y_bloques_intactos(entradas_completas):
+    datos = entradas_completas
+    original = datos.copy(deep=True)
+    preparador = PreparadorEntradas(datos)
+    matriz = preparador.transformar(datos, tamano_bloque=1)
+    assert isspmatrix_csr(matriz)
+    assert matriz.dtype == np.float32
+    assert matriz.shape == (3, 12)
+    assert preparador.nombres_columnas == tuple(
+        COLUMNAS_NUMERICAS + VARIABLES_CICLICAS
+    ) + preparador.codificador.nombres_columnas
+    esperadas = np.tile([-np.sqrt(1.5), 0.0, np.sqrt(1.5)], (4, 1)).T
+    np.testing.assert_allclose(matriz[:, :4].toarray(), esperadas, atol=1e-6)
+    np.testing.assert_array_equal(
+        matriz[:, 4:8].toarray(), datos[VARIABLES_CICLICAS].to_numpy(dtype=np.float32)
+    )
+    assert (matriz[:, 8:] != preparador.codificador.transformar(datos)).nnz == 0
+    assert_frame_equal(datos, original)
+    assert "ventas_objetivo" not in preparador.nombres_columnas
+    assert "fecha" not in preparador.nombres_columnas
+
+
+def test_escalador_fit_solo_entrenamiento_y_parametros_estables(entradas_completas, monkeypatch):
+    partes = {
+        "entrenamiento": entradas_completas,
+        "validacion": entradas_completas.assign(fecha=pd.Timestamp("2017-06-16")),
+        "test": entradas_completas.assign(fecha=pd.Timestamp("2017-07-16")),
+    }
+    for nombre in ("validacion", "test"):
+        partes[nombre][COLUMNAS_NUMERICAS] = 1000.0
+    fit_original = StandardScaler.fit
+    llamadas = []
+
+    def registrar(self, datos, *args, **kwargs):
+        llamadas.append(datos.copy())
+        return fit_original(self, datos, *args, **kwargs)
+
+    monkeypatch.setattr(StandardScaler, "fit", registrar)
+    preparador, matrices = preparar_particiones(partes)
+    assert len(llamadas) == 1
+    assert_frame_equal(llamadas[0], entradas_completas[COLUMNAS_NUMERICAS])
+    parametros = preparador.parametros_escalado
+    np.testing.assert_allclose(parametros["media"], [3] * 4)
+    np.testing.assert_allclose(parametros["varianza"], [8 / 3] * 4)
+
+    def prohibido(*args, **kwargs):
+        pytest.fail("No se permite reajustar durante transformacion")
+
+    monkeypatch.setattr(StandardScaler, "fit", prohibido)
+    monkeypatch.setattr(StandardScaler, "partial_fit", prohibido)
+    for nombre in ("validacion", "test"):
+        transformada = preparador.transformar(partes[nombre])
+        assert (transformada != matrices[nombre]).nnz == 0
+        np.testing.assert_allclose(
+            transformada[:, :4].toarray(), (1000 - 3) / np.sqrt(8 / 3), rtol=1e-6
+        )
+    for nombre, valor in parametros.items():
+        np.testing.assert_array_equal(valor, preparador.parametros_escalado[nombre])
+
+
+def test_alineacion_con_indices_repetidos_y_columnas_reordenadas(entradas_completas):
+    preparador = PreparadorEntradas(entradas_completas)
+    reordenadas = entradas_completas.iloc[[2, 0, 1], ::-1]
+    matriz = preparador.transformar(reordenadas, tamano_bloque=2)
+    original = preparador.transformar(entradas_completas)
+    assert (matriz != original[[2, 0, 1]]).nnz == 0
+    alteradas = reordenadas.assign(ventas_objetivo=999999)
+    assert (matriz != preparador.transformar(alteradas)).nnz == 0
+
+
+@pytest.mark.parametrize("columna", [COLUMNAS_NUMERICAS[0], VARIABLES_CICLICAS[0]])
+@pytest.mark.parametrize("valor", [np.nan, np.inf, -np.inf])
+def test_rechaza_entradas_no_finitas(entradas_completas, columna, valor):
+    preparador = PreparadorEntradas(entradas_completas)
+    alteradas = entradas_completas.copy()
+    alteradas.iloc[0, alteradas.columns.get_loc(columna)] = valor
+    with pytest.raises(ValueError, match="no finitos"):
+        preparador.transformar(alteradas)
+    with pytest.raises(ValueError, match="no finitos"):
+        PreparadorEntradas(alteradas)
+
+
+def test_variable_constante_y_particion_vacia(entradas_completas):
+    entradas_completas["cantidad_en_promocion"] = 0.0
+    preparador = PreparadorEntradas(entradas_completas)
+    matriz = preparador.transformar(entradas_completas)
+    assert np.isfinite(matriz.data).all()
+    assert matriz[:, 3].nnz == 0
+    vacia = preparador.transformar(entradas_completas.iloc[:0])
+    assert vacia.shape == (0, 12)
+    assert isspmatrix_csr(vacia)
+
+
+def test_no_densifica_onehot(entradas_completas, monkeypatch):
+    preparador = PreparadorEntradas(entradas_completas)
+
+    def prohibido(*args, **kwargs):
+        pytest.fail("No se permite densificar CSR")
+
+    monkeypatch.setattr(csr_matrix, "toarray", prohibido)
+    monkeypatch.setattr(csr_matrix, "todense", prohibido)
+    assert isspmatrix_csr(preparador.transformar(entradas_completas))
+
+
+def test_preparador_rechaza_ajuste_fuera_de_entrenamiento(entradas_completas):
+    datos = entradas_completas.assign(fecha=pd.Timestamp("2017-06-16"))
+    with pytest.raises(ValueError, match="exclusivamente fechas de entrenamiento"):
+        PreparadorEntradas(datos)
+
+
+def test_preparacion_completa_desde_preprocesamiento_temporal():
+    fechas = pd.date_range("2017-06-01", "2017-08-15")
+    datos = pd.DataFrame({
+        "id": range(len(fechas)), "fecha": fechas, "tienda": 1,
+        "familia": "BEAUTY", "ventas_objetivo": np.arange(len(fechas), dtype=float),
+        "cantidad_en_promocion": 0,
+    })
+    partes = dividir_por_fecha(generar_variables_historicas(datos))
+    preparador, matrices = preparar_particiones(partes)
+    for nombre, parte in partes.items():
+        assert matrices[nombre].shape == (len(parte), 10)
+        assert (matrices[nombre] != preparador.transformar(parte)).nnz == 0
+        assert np.isfinite(matrices[nombre].data).all()

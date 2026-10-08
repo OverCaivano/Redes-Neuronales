@@ -49,3 +49,11 @@ flake8 src/
 - El resultado de `generar_variables_historicas(datos)` agrega `dia_semana_seno`, `dia_semana_coseno`, `mes_seno` y `mes_coseno`, calculadas desde la fecha objetivo.
 - Convencion: lunes=0 a domingo=6; enero=0 a diciembre=11. Angulo `2*pi*indice/periodo`, con periodos 7 y 12. Seno y coseno quedan en [-1, 1] y no requieren ajuste.
 - Se conservan los rezagos, los conteos de descartes y las particiones existentes. El comando de tests sigue siendo el mismo.
+
+## Bloque 1C: codificacion categorica one-hot
+
+- `src/transformaciones.py`: `codificador, matrices = codificar_particiones(dividir_por_fecha(resultado))` ajusta exclusivamente con entrenamiento y transforma las tres particiones con la misma instancia.
+- `CodificadorCategorias(entrenamiento)` verifica las fechas de entrenamiento y se ajusta una sola vez. `transformar(datos)` no reajusta; devuelve CSR float32, sin densificar, con dos unos por fila.
+- `codificador.nombres_columnas` fija el orden: tiendas ascendentes y luego familias alfabeticas, conservando los nombres originales. Las categorias desconocidas producen un error claro.
+- Las matrices contienen solo tienda/familia. Conservan el orden de filas; fechas, objetivo y variables numericas siguen en las particiones originales. No incluye escalado ni conexion al MLP.
+- Tests: `.\venv\Scripts\python.exe -m pytest -q`.

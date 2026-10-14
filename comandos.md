@@ -94,3 +94,13 @@ flake8 src/
 - Una carpeta de salida no vacia se rechaza para no sobrescribir corridas. Para otra corrida usar una ruta distinta. Los errores numericos detienen la corrida antes de guardar la epoca fallida; queda el ultimo checkpoint valido.
 - No hay log1p ni recorte de predicciones; objetivos y metricas estan en unidades originales. El MSE de entrenamiento corresponde a predicciones durante las actualizaciones de la epoca.
 - Verificar: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check` y `git status`. No agregar runs/ a Git.
+
+## Bloque 1E-B: reanudacion entre epocas
+
+- `.\venv\Scripts\python.exe -m src.train --resume runs/favorita_subconjunto/last.pt --epochs 4` continua hasta cuatro epocas TOTALES. Si se omite --config se recupera la configuracion del checkpoint. Un --config explicito se valida: solo se permite cambiar el total, la ubicacion del mismo CSV (verificada por SHA-256) y la carpeta de la copia.
+- Solo last.pt es un punto de reanudacion. La carpeta de resultados se toma de su ubicacion, por lo que se puede trabajar sobre una copia completa sin tocar el original. Si el total ya fue alcanzado, no se entrena ni se escriben archivos.
+- `src/reanudacion.py` verifica configuracion, columnas, particiones, historial, best.pt y huella del dataset. `construir_loaders_favorita(..., preparador=...)` reutiliza las transformaciones guardadas sin fit.
+- Se restauran pesos, Adam, mejor epoca/RMSE, historial y RNG de PyTorch y shuffle; formato v2 agrega Python, NumPy y generadores de loaders. Comparacion exacta comprobada en CPU con el mismo entorno. No se garantiza equivalencia bit a bit entre versiones, hardware o CPU/GPU; cambios de dispositivo se rechazan en esta version.
+- Compatibilidad legacy v1: no existe huella historica del CSV. Se comprueban periodos, conteos y metricas de validacion, se advierte esta limitacion y se registra SHA-256 al guardar v2. Eso no demuestra que el CSV sea identico al historico. No hay fit adicional.
+- Guardado de epoca: prepara todos los archivos temporalmente, publica last.pt al final y revierte reemplazos ante excepciones de E/S. Un corte de energia durante multiples reemplazos no es una transaccion atomica; inconsistencias se rechazan y requieren restaurar una copia completa.
+- Respaldar la carpeta completa antes de reanudar pilotos importantes, dentro de runs/ (ignorado por Git). No se reanuda a mitad de epoca y no se evalua test.

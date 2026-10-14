@@ -8,6 +8,10 @@ import json
 import math
 from pathlib import Path
 import platform
+import random
+import warnings
+
+import numpy as np
 import sys
 from time import perf_counter
 
@@ -22,7 +26,8 @@ if __package__ in (None, ""):
 from src.data_loader import build_dataloaders
 from src.models import MLP
 from src.metricas import MetricasRegresion, validar_predicciones
-from src.checkpoints import guardar_checkpoint, guardar_texto
+from src.checkpoints import guardar_checkpoint, guardar_epoca
+from src.reanudacion import cargar_last, huella_dataset, validar_reanudacion
 
 
 def load_config(path):
@@ -112,7 +117,7 @@ def _train_synthetic(config):
     return model_path
 
 
-def _train_favorita(config):
+def _train_favorita(config, resume=None):
     from src.loaders_favorita import construir_loaders_favorita
     from src.transformaciones import COLUMNAS_NUMERICAS
     from src.preprocesamiento_temporal import PERIODOS
@@ -130,19 +135,38 @@ def _train_favorita(config):
         raise ValueError("CUDA no esta disponible")
     if int(config["model"].get("output_dim", 1)) != 1:
         raise ValueError("Favorita requiere output_dim=1")
-    directorio = Path(config["output"]["directory"])
-    if directorio.exists() and any(directorio.iterdir()):
+    estado_previo = cargar_last(resume) if resume is not None else None
+    digest = huella_dataset(config["data"]["path"])
+    resumen_anterior = {}
+    directorio = Path(resume).parent if resume is not None else Path(config["output"]["directory"])
+    if estado_previo is not None:
+        resumen_anterior = validar_reanudacion(resume, estado_previo, config, digest)
+        config["output"]["directory"] = str(directorio)
+        if epochs <= estado_previo["epoch"]:
+            print(f"Sin epocas nuevas: completadas {estado_previo['epoch']}, total solicitado {epochs}.")
+            return directorio / "best.pt"
+    if estado_previo is None and directorio.exists() and any(directorio.iterdir()):
         raise FileExistsError(f"La carpeta de resultados no esta vacia: {directorio}; use otra ruta")
 
     seed = int(config.get("seed", 42))
     torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
     inicio = perf_counter()
     datos = config["data"]
     preparado = construir_loaders_favorita(
         datos["path"], tiendas=datos.get("tiendas"), familias=datos.get("familias"),
         batch_size=int(config["training"]["batch_size"]), semilla=seed,
         num_workers=int(config["training"].get("num_workers", 0)),
+        preparador=estado_previo["preparador"] if estado_previo else None,
     )
+    if estado_previo is not None:
+        if (
+            preparado.input_dim != estado_previo["input_dim"]
+            or tuple(preparado.nombres_columnas) != tuple(estado_previo["nombres_columnas"])
+            or preparado.filas_por_particion != resumen_anterior["filas_por_particion"]
+        ):
+            raise ValueError("Dataset, dimensiones o columnas incompatibles al reconstruir loaders")
     config["model"]["input_dim"] = preparado.input_dim
     config["model"]["output_dim"] = 1
     modelo = MLP(
@@ -159,12 +183,55 @@ def _train_favorita(config):
         float(parametros["escala"][indice_numerico]),
     )
     directorio.mkdir(parents=True, exist_ok=True)
-    guardar_texto(directorio / "configuracion.yaml", yaml.safe_dump(config, sort_keys=False))
     segundos_preparacion = perf_counter() - inicio
     historial = []
     mejor_rmse, mejor_epoca = float("inf"), None
+    primera_epoca = 1
+    if estado_previo is not None:
+        _comprobar_tensores_finitos(estado_previo["model_state_dict"], "Pesos guardados")
+        _comprobar_tensores_finitos(estado_previo["optimizer_state_dict"], "Optimizador guardado")
+        try:
+            modelo.load_state_dict(estado_previo["model_state_dict"])
+            optimizer.load_state_dict(estado_previo["optimizer_state_dict"])
+        except (ValueError, KeyError, RuntimeError) as error:
+            raise ValueError("Pesos u optimizador incompatibles con la arquitectura") from error
+        historial = copy.deepcopy(estado_previo["historial"])
+        mejor_rmse = estado_previo["best_validation_rmse"]
+        mejor_epoca = estado_previo["best_epoch"]
+        primera_epoca = estado_previo["epoch"] + 1
+        if estado_previo["format_version"] == 1:
+            comprobacion = ejecutar_epoca(
+                modelo, preparado.loaders["validacion"], criterio,
+                device=device, baseline=baseline,
+            )
+            ultima = historial[-1]
+            if not all(math.isclose(a, b, rel_tol=1e-6, abs_tol=1e-6) for a, b in (
+                (comprobacion["mae"], ultima["val_mae"]),
+                (comprobacion["rmse"], ultima["val_rmse"]),
+                (comprobacion["baseline"]["mae"], ultima["baseline_mae"]),
+                (comprobacion["baseline"]["rmse"], ultima["baseline_rmse"]),
+            )):
+                raise ValueError("Dataset/checkpoint legado incompatible: validacion no reproducida")
+            warnings.warn(
+                "Checkpoint legado sin SHA-256 historico: conteos y validacion verificados; "
+                "no se puede demostrar identidad historica del CSV. Se registra su huella actual.",
+                UserWarning,
+            )
+        # Restaurar despues de construir el modelo/loaders y verificar el legado.
+        try:
+            torch.set_rng_state(estado_previo["torch_rng_state"])
+            preparado.loaders["entrenamiento"].generator.set_state(estado_previo["loader_rng_state"])
+            for nombre, rng in estado_previo.get("loaders_rng_state", {}).items():
+                preparado.loaders[nombre].generator.set_state(rng)
+            if estado_previo.get("cuda_rng_state") is not None and device.type == "cuda":
+                torch.cuda.set_rng_state_all(estado_previo["cuda_rng_state"])
+            if "python_rng_state" in estado_previo:
+                random.setstate(estado_previo["python_rng_state"])
+                np.random.set_state(estado_previo["numpy_rng_state"])
+        except (ValueError, TypeError, RuntimeError) as error:
+            raise ValueError("Estados aleatorios del checkpoint incompatibles") from error
     inicio_entrenamiento = perf_counter()
-    for epoch in range(1, epochs + 1):
+    for epoch in range(primera_epoca, epochs + 1):
         inicio_epoca = perf_counter()
         entrenamiento = ejecutar_epoca(
             modelo, preparado.loaders["entrenamiento"], criterio, optimizer, device=device
@@ -188,7 +255,8 @@ def _train_favorita(config):
         if mejora:
             mejor_rmse, mejor_epoca = fila["val_rmse"], epoch
         historial.append(fila)
-        segundos = perf_counter() - inicio_entrenamiento
+        segundos_sesion = perf_counter() - inicio_entrenamiento
+        segundos = resumen_anterior.get("segundos_entrenamiento", 0.0) + segundos_sesion
         resumen = {
             "epocas_completadas": epoch, "mejor_epoca": mejor_epoca,
             "mejor_val_rmse": mejor_rmse, "mejor_val_mae": historial[mejor_epoca - 1]["val_mae"],
@@ -198,10 +266,21 @@ def _train_favorita(config):
             "filas_descartadas_historia": preparado.filas_descartadas_historia,
             "periodos": PERIODOS, "segundos_preparacion": segundos_preparacion,
             "segundos_entrenamiento": segundos, "test_evaluado": False,
+            "segundos_ultima_sesion": segundos_sesion,
+            "reanudado_desde_epoca": primera_epoca - 1,
+            "dataset_sha256": digest,
             "metricas_entrenamiento": "Predicciones durante las actualizaciones de cada epoca",
         }
         estado = {
-            "format_version": 1, "model_state_dict": modelo.state_dict(),
+            "format_version": 2, "model_state_dict": modelo.state_dict(),
+            "dataset_sha256": digest,
+            "periodos": {nombre: list(limites) for nombre, limites in PERIODOS.items()},
+            "python_rng_state": random.getstate(), "numpy_rng_state": np.random.get_state(),
+            "segundos_entrenamiento": segundos,
+            "loaders_rng_state": {
+                nombre: loader.generator.get_state()
+                for nombre, loader in preparado.loaders.items() if hasattr(loader, "generator")
+            },
             "optimizer_state_dict": optimizer.state_dict(), "epoch": epoch,
             "config": config, "input_dim": preparado.input_dim,
             "nombres_columnas": preparado.nombres_columnas,
@@ -214,15 +293,15 @@ def _train_favorita(config):
                          "sklearn": sklearn.__version__},
         }
         # Solo se llega aqui tras completar y validar la epoca entera.
-        guardar_checkpoint(directorio / "last.pt", estado)
-        if mejora:
-            guardar_checkpoint(directorio / "best.pt", estado)
         buffer = io.StringIO(newline="")
         escritor = csv.DictWriter(buffer, fieldnames=list(fila))
         escritor.writeheader()
         escritor.writerows(historial)
-        guardar_texto(directorio / "metricas.csv", buffer.getvalue())
-        guardar_texto(directorio / "resumen.json", json.dumps(resumen, indent=2, allow_nan=False))
+        guardar_epoca(
+            directorio, estado, mejora=mejora, metricas_csv=buffer.getvalue(),
+            resumen_json=json.dumps(resumen, indent=2, allow_nan=False),
+            configuracion_yaml=yaml.safe_dump(config, sort_keys=False),
+        )
         print(
             f"Epoch {epoch}/{epochs} - train_MSE={fila['train_mse']:.6f} "
             f"val_MAE={fila['val_mae']:.6f} val_RMSE={fila['val_rmse']:.6f} "
@@ -232,10 +311,12 @@ def _train_favorita(config):
     return directorio / "best.pt"
 
 
-def train(config):
+def train(config, *, resume=None):
     source = config["data"].get("source", "synthetic")
     if source == "favorita":
-        return _train_favorita(config)
+        return _train_favorita(config, resume=resume)
+    if resume is not None:
+        raise ValueError("La reanudacion solo admite data.source=favorita")
     if source in ("synthetic", "csv"):
         return _train_synthetic(config)
     raise ValueError(f"data.source desconocida: {source}")
@@ -243,13 +324,17 @@ def train(config):
 
 def main():
     parser = argparse.ArgumentParser(description="Entrena el MLP sintetico o Favorita")
-    parser.add_argument("--config", default="configs/default.yaml")
-    parser.add_argument("--epochs", type=int, help="Epocas efectivas de esta corrida (sin editar YAML)")
+    parser.add_argument("--config", help="YAML; al reanudar se usa el checkpoint si se omite")
+    parser.add_argument("--epochs", type=int, help="Numero TOTAL de epocas")
+    parser.add_argument("--resume", help="Ruta a last.pt de una corrida propia")
     args = parser.parse_args()
-    config = load_config(args.config)
+    if args.resume and not args.config:
+        config = copy.deepcopy(cargar_last(args.resume)["config"])
+    else:
+        config = load_config(args.config or "configs/default.yaml")
     if args.epochs is not None:
         config["training"]["epochs"] = args.epochs
-    train(config)
+    train(config, resume=args.resume)
 
 
 if __name__ == "__main__":

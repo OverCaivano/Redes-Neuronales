@@ -33,13 +33,14 @@ class ResultadoLoadersFavorita:
 
 def construir_loaders_favorita(
     ruta="data/raw/train.csv", *, tiendas=None, familias=None,
-    batch_size=256, semilla=42, num_workers=0,
+    batch_size=256, semilla=42, num_workers=0, preparador=None,
 ):
     """Lee historia completa, divide por fecha, ajusta en train y crea loaders.
 
     Reutiliza el pipeline existente. Transforma una particion por vez y libera
     su tabla al terminar. Conserva solo CSR, objetivos float32 [N,1] y metadatos
     compactos (id, fecha, tienda, familia). No densifica las matrices.
+    Si se recibe preparador, se reutiliza sin fit para reanudar/evaluar.
     """
     datos = leer_datos_favorita(ruta, tiendas=tiendas, familias=familias)
     temporal = generar_variables_historicas(datos)
@@ -62,7 +63,10 @@ def construir_loaders_favorita(
         fin_anterior = fechas.max()
     del parte, fechas
 
-    preparador = PreparadorEntradas(particiones["entrenamiento"])
+    if preparador is None:
+        preparador = PreparadorEntradas(particiones["entrenamiento"])
+    elif not isinstance(preparador, PreparadorEntradas):
+        raise TypeError("preparador debe ser PreparadorEntradas ajustado")
     nombres_columnas = preparador.nombres_columnas
     input_dim = len(nombres_columnas)
     loaders, metadatos, cantidades = {}, {}, {}

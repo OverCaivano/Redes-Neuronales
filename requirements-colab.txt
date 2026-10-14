@@ -1,0 +1,8 @@
+# Versiones del entorno local y de sus transformaciones serializadas.
+# Usar el mismo Python major.minor al reanudar; no cargar checkpoints del piloto.
+torch==2.13.0
+numpy==2.5.2
+pandas==3.0.5
+scipy==1.18.0
+scikit-learn==1.9.0
+PyYAML==6.0.3

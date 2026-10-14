@@ -10,3 +10,7 @@ __pycache__/
 
 # Resultados y checkpoints de experimentos
 /runs/
+
+# Entorno aislado y archivos auxiliares de notebooks
+.venv-colab/
+.ipynb_checkpoints/

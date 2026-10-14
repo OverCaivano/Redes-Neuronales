@@ -12,3 +12,5 @@
 - Reemplazar los datos sintéticos por el dataset del proyecto en `data/raw/`.
 - Ajustar la arquitectura y la función de pérdida según el problema elegido.
 - Añadir métricas específicas y validación cruzada cuando se defina el caso de uso.
+
+- **[2026-10-14]:** Bloque 1E-C: notebook Colab para Favorita completo, entorno aislado y sincronizacion verificada por epoca a Drive; recuperacion de generaciones integras. No se ejecuto entrenamiento completo.

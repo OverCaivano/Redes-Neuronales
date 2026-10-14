@@ -117,7 +117,7 @@ def _train_synthetic(config):
     return model_path
 
 
-def _train_favorita(config, resume=None):
+def _train_favorita(config, resume=None, sync_dir=None):
     from src.loaders_favorita import construir_loaders_favorita
     from src.transformaciones import COLUMNAS_NUMERICAS
     from src.preprocesamiento_temporal import PERIODOS
@@ -230,6 +230,8 @@ def _train_favorita(config, resume=None):
                 np.random.set_state(estado_previo["numpy_rng_state"])
         except (ValueError, TypeError, RuntimeError) as error:
             raise ValueError("Estados aleatorios del checkpoint incompatibles") from error
+    print(f"Dispositivo: {device}; ejemplos: {preparado.filas_por_particion}; "
+          f"input_dim: {preparado.input_dim}; resultados locales: {directorio}", flush=True)
     inicio_entrenamiento = perf_counter()
     for epoch in range(primera_epoca, epochs + 1):
         inicio_epoca = perf_counter()
@@ -302,19 +304,26 @@ def _train_favorita(config, resume=None):
             resumen_json=json.dumps(resumen, indent=2, allow_nan=False),
             configuracion_yaml=yaml.safe_dump(config, sort_keys=False),
         )
+        if sync_dir is not None:
+            from src.sincronizacion import sincronizar_epoca
+            copia = sincronizar_epoca(directorio, sync_dir)
+            print(f"Copia verificada en Drive: {copia}", flush=True)
         print(
             f"Epoch {epoch}/{epochs} - train_MSE={fila['train_mse']:.6f} "
             f"val_MAE={fila['val_mae']:.6f} val_RMSE={fila['val_rmse']:.6f} "
-            f"baseline_MAE={fila['baseline_mae']:.6f} baseline_RMSE={fila['baseline_rmse']:.6f}",
+            f"baseline_MAE={fila['baseline_mae']:.6f} baseline_RMSE={fila['baseline_rmse']:.6f} "
+            f"mejor_epoca={mejor_epoca}",
             flush=True,
         )
     return directorio / "best.pt"
 
 
-def train(config, *, resume=None):
+def train(config, *, resume=None, sync_dir=None):
     source = config["data"].get("source", "synthetic")
     if source == "favorita":
-        return _train_favorita(config, resume=resume)
+        return _train_favorita(config, resume=resume, sync_dir=sync_dir)
+    if sync_dir is not None:
+        raise ValueError("La sincronizacion solo admite data.source=favorita")
     if resume is not None:
         raise ValueError("La reanudacion solo admite data.source=favorita")
     if source in ("synthetic", "csv"):
@@ -327,6 +336,7 @@ def main():
     parser.add_argument("--config", help="YAML; al reanudar se usa el checkpoint si se omite")
     parser.add_argument("--epochs", type=int, help="Numero TOTAL de epocas")
     parser.add_argument("--resume", help="Ruta a last.pt de una corrida propia")
+    parser.add_argument("--sync-dir", help="Carpeta Drive montada: copia verificada por epoca")
     args = parser.parse_args()
     if args.resume and not args.config:
         config = copy.deepcopy(cargar_last(args.resume)["config"])
@@ -334,7 +344,7 @@ def main():
         config = load_config(args.config or "configs/default.yaml")
     if args.epochs is not None:
         config["training"]["epochs"] = args.epochs
-    train(config, resume=args.resume)
+    train(config, resume=args.resume, sync_dir=args.sync_dir)
 
 
 if __name__ == "__main__":

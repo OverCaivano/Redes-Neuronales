@@ -7,3 +7,6 @@ __pycache__/
 !/data/raw/.gitkeep
 /data/processed/*
 !/data/processed/.gitkeep
+
+# Resultados y checkpoints de experimentos
+/runs/

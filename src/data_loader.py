@@ -48,9 +48,12 @@ def build_dataloaders(config):
     seed = int(config.get("seed", 42))
     model_config = config["model"]
     data_config = config["data"]
+    source = data_config.get("source", "synthetic")
+    if source not in ("synthetic", "csv"):
+        raise ValueError(f"data.source no admitida por el loader generico: {source}")
     input_dim = int(model_config["input_dim"])
 
-    if data_config.get("source", "synthetic") == "csv":
+    if source == "csv":
         features, targets = _csv_data(data_config, input_dim)
     else:
         features, targets = _synthetic_data(data_config, input_dim, seed)

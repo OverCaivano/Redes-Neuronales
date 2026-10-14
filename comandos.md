@@ -83,3 +83,14 @@ flake8 src/
 - Se genera historia antes de dividir por las fechas fijadas; se ajusta una unica vez con entrenamiento. Particiones vacias o categorias desconocidas producen errores. CSR float32 y objetivos float32 [N,1] se validan sin densificacion completa.
 - Los metadatos id/fecha/tienda/familia estan alineados por posicion del Dataset; validacion/test mantienen ese orden. No asociar secuencialmente metadatos con lotes mezclados de entrenamiento. Se liberan tablas intermedias y se conserva familia como categoria en metadatos.
 - No entrena, no escribe datasets ni checkpoints. Tests: `.\venv\Scripts\python.exe -m pytest -q`. Revision: `git diff --check` y `git status`.
+
+## Bloque 1E-A: entrenamiento piloto Favorita
+
+- Configuracion: `configs/favorita.yaml` conserva 10 epocas, CPU, semilla 42, batch 256, Adam lr 0.001 y el subconjunto de dos tiendas/tres familias.
+- Piloto limitado a dos epocas: `.\venv\Scripts\python.exe -m src.train --config configs/favorita.yaml --epochs 2`. La configuracion efectiva guardada refleja dos epocas; el YAML original no cambia.
+- `src/metricas.py` acumula MAE/MSE/RMSE por muestra. Validacion no calcula gradientes y compara con el rezago semanal reconstruido a unidades originales. Test no se evalua ni selecciona modelos.
+- `src/checkpoints.py` escribe archivos temporales y reemplaza cada destino al completar la escritura. `runs/favorita_subconjunto/` contiene metricas.csv, resumen.json, configuracion.yaml, last.pt y best.pt; best se selecciona por RMSE de validacion.
+- Los checkpoints incluyen pesos, optimizador, epoca, configuracion, dimension, columnas, preparador ajustado, historial y estados aleatorios. La carga de estos artefactos propios con objetos sklearn requiere `torch.load(..., weights_only=False)`. No se ha implementado reanudacion ni evaluacion de test; evaluate.py sigue siendo el evaluador sintetico.
+- Una carpeta de salida no vacia se rechaza para no sobrescribir corridas. Para otra corrida usar una ruta distinta. Los errores numericos detienen la corrida antes de guardar la epoca fallida; queda el ultimo checkpoint valido.
+- No hay log1p ni recorte de predicciones; objetivos y metricas estan en unidades originales. El MSE de entrenamiento corresponde a predicciones durante las actualizaciones de la epoca.
+- Verificar: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check` y `git status`. No agregar runs/ a Git.

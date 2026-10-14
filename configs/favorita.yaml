@@ -1,0 +1,21 @@
+seed: 42
+device: cpu
+
+model:
+  hidden_dim: 32
+  output_dim: 1
+
+training:
+  epochs: 10
+  batch_size: 256
+  learning_rate: 0.001
+  num_workers: 0
+
+data:
+  source: favorita
+  path: data/raw/train.csv
+  tiendas: [1, 2]
+  familias: [AUTOMOTIVE, BABY CARE, BEAUTY]
+
+output:
+  directory: runs/favorita_subconjunto

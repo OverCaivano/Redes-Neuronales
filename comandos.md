@@ -150,3 +150,35 @@ Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por 
 - Se muestra la salida original del MLP sin redondear a enteros ni recortar negativos. Una salida negativa se informa como limitacion del modelo. Son ventas agregadas diarias por familia/tienda.
 - Es una consulta historica con pesos ya ajustados: consultar fechas de entrenamiento no constituye un backtest fuera de muestra ni demuestra que el modelo existiera en esa fecha. No usar consultas del test para seleccionar modelos o hiperparametros.
 - No cambia el comando de evaluacion sintetica ni Favorita. Pruebas: `.\venv\Scripts\python.exe -m pytest -q`; revision: `git diff --check` y `git status`.
+
+
+## Bloque C: StockPredict IA — aplicación web local
+
+Desde la raíz del repositorio, en Windows PowerShell:
+
+```powershell
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt
+.\venv\Scripts\python.exe -m src.web_app
+```
+
+Abrir **http://127.0.0.1:5000**. Detener con Ctrl+C. Si el puerto está ocupado: `.\venv\Scripts\python.exe -m src.web_app --port 5001`.
+
+- Cinco páginas: Inicio, Predicciones, Evaluación, Historial y Acerca. HTML adaptado de Stitch mediante plantillas Jinja compartidas; JavaScript nativo. Flask escucha únicamente en localhost, sin depurador. Es un servidor para uso local, no un despliegue público.
+- Diseños originales copiados sin alteraciones a `disenos/stitch/`: Descargas/1 → predicciones, /2 → inicio, /3 → evaluacion, /4 → acerca, /5 → historial. Cada pantalla conserva HTML y DESIGN con nombres descriptivos; `procedencia.json` registra hashes. Estas referencias contienen el contenido ficticio original; no se sirven por HTTP. Las plantillas adaptadas están en `web/templates/`.
+- Checkpoint fijo: `runs/favorita_subconjunto_reanudado_4/best.pt`; datos: `data/raw/train.csv`. No hay selector de archivos ni carga de checkpoints mediante HTTP. `GET /api/opciones` ofrece únicamente categorías y fechas compatibles, calculadas con el pipeline existente. No expone ventas originales ni CSV.
+- `POST /api/predicciones` recibe exactamente `tienda` (entero), `familia` y `fecha` (AAAA-MM-DD). Reutiliza `predecir_favorita`, verifica el dataset y no entrena. Puede tardar varios segundos por lectura y validación; la interfaz muestra espera y errores. Una sola inferencia a la vez. La caché de fechas se invalida cuando cambian tamaño o fecha de modificación de CSV/checkpoint.
+- Ejemplo real del piloto: tienda 1, familia BEAUTY, fecha 2017-07-16. El botón de ejemplo solo completa el formulario; la predicción se solicita al backend. Sin resultados simulados, intervalos de confianza ni recomendaciones de compra.
+- Evaluación lee `runs/evaluaciones/favorita_piloto_test/evaluacion.json` y verifica que corresponda al checkpoint. Historial lee los resúmenes y métricas del piloto inicial y su continuación. Si falta un artefacto se informa; no se reemplaza por métricas inventadas. El estado de Google Drive no está verificado y sus checkpoints no se presuponen locales.
+- API de lectura pública: `GET /api/resumen`, sin rutas privadas, pesos ni configuraciones completas. Los errores HTTP no muestran trazas. Dataset y resultados continúan ignorados por Git.
+- Los estilos compilados están incluidos en `web/static/estilos.css`: no se necesita Node para iniciar. Fuentes Google opcionales; sin Internet se usan fuentes del sistema. No se utiliza el script CDN de Tailwind en la aplicación.
+- El selector claro/oscuro está disponible en las cinco pantallas. La preferencia `stockpredict-theme` se conserva en `localStorage`; sin preferencia usa `prefers-color-scheme`. El script `web/static/tema.js` aplica el tema antes de cargar estilos.
+- Solo para regenerar la adaptación de diseño: instalar `beautifulsoup4==4.15.0`, ejecutar `.\venv\Scripts\python.exe web/adaptar_stitch.py`, y luego `npx.cmd --yes tailwindcss@3.4.17 -c web/tailwind.config.cjs -i web/static/base.css -o web/static/estilos.css --minify`. El generador sobrescribe las plantillas adaptadas; editar el generador al cambiar su contenido. Node solo se usa en este paso de desarrollo.
+- Pruebas: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check`, `git status`. Las pruebas API usan checkpoints pequeños en carpetas temporales.
+
+Ejemplo de consulta HTTP en PowerShell con el servidor iniciado:
+
+```powershell
+$cuerpo = @{ tienda = 1; familia = "BEAUTY"; fecha = "2017-07-16" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/api/predicciones -ContentType "application/json" -Body $cuerpo
+```

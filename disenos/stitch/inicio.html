@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-container":"#eef0ff","primary-container":"#2563eb","outline":"#737686","on-error-container":"#93000a","on-tertiary-fixed-variant":"#3f465c","secondary-fixed":"#6ffbbe","surface-tint":"#0053db","surface-container":"#e5eeff","primary-fixed-dim":"#b4c5ff","tertiary-fixed-dim":"#bec6e0","tertiary-container":"#656d84","on-surface-variant":"#434655","on-tertiary":"#ffffff","inverse-surface":"#213145","surface-bright":"#f8f9ff","primary-fixed":"#dbe1ff","on-secondary-fixed":"#002113","secondary-fixed-dim":"#4edea3","surface":"#f8f9ff","on-secondary-container":"#00714d","surface-variant":"#d3e4fe","on-primary":"#ffffff","primary":"#004ac6","on-secondary-fixed-variant":"#005236","surface-dim":"#cbdbf5","surface-container-lowest":"#ffffff","surface-container-low":"#eff4ff","error-container":"#ffdad6","on-surface":"#0b1c30","surface-container-high":"#dce9ff","background":"#f8f9ff","error":"#ba1a1a","secondary-container":"#6cf8bb","on-secondary":"#ffffff","on-background":"#0b1c30","tertiary-fixed":"#dae2fd","inverse-primary":"#b4c5ff","outline-variant":"#c3c6d7","inverse-on-surface":"#eaf1ff","surface-container-highest":"#d3e4fe","on-error":"#ffffff","on-primary-fixed":"#00174b","on-primary-container":"#eeefff","on-tertiary-fixed":"#131b2e","secondary":"#006c49","on-primary-fixed-variant":"#003ea8","tertiary":"#4d556b"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5deg","full":"0.75rem"},"spacing":{"space-xs":"0.25rem","space-md":"1rem","space-sm":"0.5rem","space-lg":"1.5rem","gutter":"1.5rem","gutter-mobile":"1rem","margin":"2rem","margin-mobile":"1rem","space-xl":"2rem"},"fontFamily":{"label-lg":["Inter"],"metric-display":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-sm":["Inter"],"headline-md":["Plus Jakarta Sans"],"body-md":["Inter"],"headline-lg":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"body-sm":["Inter"],"headline-xl-mobile":["Plus Jakarta Sans"]},"fontSize":{"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}],"metric-display":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-xl":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-lg-mobile":["22px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"headline-lg":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-sm":["16px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.005em","fontWeight":"400"}],"headline-xl-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest border-r border-outline-variant/50 z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.02)]"><div class="flex flex-col"><div class="p-space-lg flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><img alt="StockPredict IA Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UKm110QQ8rL6auPE9jgod2RIeXwg9OjlFuD3fLzRc3zQAVwk4IMX41zs1LNItLHKev5RtgnspUejBb5zSKv1vgY9ojh98WQVeDl_RBJniu3VVRFuCTH7n1o_darDhPSeMHMiPFm9HMy9YYAUAtge99n2OsQpn7QxWGQ1iE--u5iKoN-EzNSYvsJ72OhTcgrkeJ-BZ_kXxNOgR0NKfzzGn08org4FUnLSdJCdl2UKol"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">StockPredict IA</span></div><div class="mt-space-xs inline-flex items-center self-start gap-1.5 px-2 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm border border-outline-variant/60"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span><span>Prototipo Académico v1.0</span></div></div><div class="px-space-md py-space-xs"><div class="px-space-sm pb-space-xs font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Navegación Experimental</div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg shadow-sm"><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 transition-all bg-primary-container text-on-primary-container font-label-md rounded-lg shadow-sm" data-path="inicio" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span>Inicio</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="predicciones" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span>Predicciones</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="evaluacion-del-modelo" href="#"><span class="material-symbols-outlined text-[20px]">analytics</span><span>Evaluación del modelo</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="historial-de-entrenamientos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span>Historial de entrenamientos</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="acerca-del-proyecto" href="#"><span class="material-symbols-outlined text-[20px]">info</span><span>Acerca del proyecto</span></a></nav></div></div><div class="p-space-md m-space-md rounded-xl bg-surface-container-low border border-outline-variant/40"><div class="flex items-center justify-between mb-2"><span class="font-label-sm text-label-sm text-on-surface-variant">Núcleo Predictivo</span><div class="flex items-center gap-1.5"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed-dim opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span><span class="font-label-sm text-label-sm text-secondary font-medium">Online</span></div></div><div class="text-body-sm font-body-sm text-on-surface mb-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">neurology</span><span>PyTorch 2.2 / MLP</span></div><div class="text-label-sm font-label-sm text-on-surface-variant/90 border-t border-outline-variant/30 pt-1.5 flex items-center justify-between"><span>Dataset activo:</span><span class="font-semibold text-on-surface">Favorita Grocery v1</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/40 z-40 px-space-xl flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-container-low border border-outline-variant/40 text-on-surface-variant font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] text-tertiary">dataset</span><span>Dataset Favorita • Partición Validada</span></div></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-3"><div class="text-right hidden sm:block"><div class="font-label-md text-label-md text-on-surface font-semibold">Dra. Elena Ruiz</div><div class="font-label-sm text-label-sm text-on-surface-variant">Investigación IA</div></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant/50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPjqF0H6s3pZ9WEfeqL51_9pU7k_dfqFelCgfUVJWAEExjJby48Aek4nW8Ue__LJowoBHKtADZMkLewcCgONrNtQO2oupt8wAx9-ciGva3vWvgOsk5J4p9N_Jee8RMpdJU5Y5Q1D1TFPfjOl2fNWmYaMcLI0E9PwdEmFkw7D-t1mDPVnNHsSbxRusJF8PDYWhDYjFBjEzOBeSgX2dOWfDrcuhaOEjbqr0l7zM0Bks"/></div></div></header><main class="relative pt-16 min-h-screen bg-surface w-full px-space-xl py-space-xl"><div class="flex flex-col w-full">
+<!-- Header Titular & Context Metadata -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md mb-space-xl">
+<div>
+<div class="flex items-center gap-space-sm mb-space-xs">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+          Inferencia Neuronal Activa
+        </span>
+<span class="text-on-surface-variant font-label-sm text-label-sm tracking-wider uppercase">Ambiente de Evaluación</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Panel de predicción de demanda</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-1">Analizá las ventas históricas y consultá estimaciones generadas por inteligencia artificial</p>
+</div>
+<div class="flex items-center gap-space-sm self-start lg:self-auto bg-surface-container-lowest p-1.5 rounded-lg shadow-sm">
+<div class="px-3 py-1 text-right">
+<div class="font-label-sm text-label-sm text-on-surface-variant">Última sincronización</div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">15 Ago 2017 • Partición Test</div>
+</div>
+<div class="h-7 w-px bg-surface-container-high"></div>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container-low" title="Exportar reporte CSV" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+</div>
+<!-- 1. Barra superior de resumen (4 Tarjetas clave en grid de 4 columnas) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md mb-space-xl">
+<!-- Card 1: Modelo en producción -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Modelo en producción</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Activo
+        </span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Red Neuronal MLP</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Multilayer Perceptron (PyTorch)</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Arquitec.: 4 capas (ReLU)</span>
+<span class="text-primary font-medium">98.4% Acc</span>
+</div>
+</div>
+<!-- Card 2: Estado del modelo -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Estado del modelo</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> Convergido
+        </span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Entrenado y validado</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Época 50/50 • Loss: 0.024 RMSLE</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Último checkpoint:</span>
+<span class="font-semibold text-on-surface">14/08/2017 22:40</span>
+</div>
+</div>
+<!-- Card 3: Dataset fuente -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Dataset fuente</span>
+<span class="material-symbols-outlined text-primary text-[20px]">storefront</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Corporación Favorita</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Historial estructurado de supermercados</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Ecuador • 54 Tiendas</span>
+<span class="font-medium text-tertiary">3M+ Muestras</span>
+</div>
+</div>
+<!-- Card 4: Tipo de predicción -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tipo de predicción</span>
+<span class="material-symbols-outlined text-secondary text-[20px]">equalizer</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Ventas diarias</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Granularidad por tienda y familia</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Target:</span>
+<span class="font-semibold text-on-surface">Unidades físicas (daily)</span>
+</div>
+</div>
+</section>
+<!-- 2. Sección destacada de acción central: Consultar predicción -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm mb-space-xl">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs pb-space-md">
+<div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Consultar predicción</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Ejecute una inferencia sobre la partición histórica seleccionando los parámetros del punto de venta.</p>
+</div>
+<div class="flex items-center gap-2 self-start sm:self-auto">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-surface-container text-label-md font-label-md transition-colors" id="btn-load-sample" type="button">
+<span class="material-symbols-outlined text-[16px]">science</span>
+          Cargar ejemplo del piloto
+        </button>
+</div>
+</div>
+<!-- Formulario de Inferencia -->
+<form class="mt-space-sm" id="prediction-form" onsubmit="event.preventDefault(); window.runInferenceSimulation();">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Campo 1: Tienda / Sucursal -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" for="store-select">Tienda / Sucursal</label>
+<div class="relative">
+<select class="w-full h-11 px-3 py-2 pr-9 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer" id="store-select">
+<option selected="" value="1">Tienda 1 (Quito Centro)</option>
+<option value="2">Tienda 2 (Guayaquil Norte)</option>
+<option value="44">Tienda 44 (Quito Norte)</option>
+<option value="45">Tienda 45 (Manta)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sucursal tipo A • Formato Supermaxi</span>
+</div>
+<!-- Campo 2: Familia de productos -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" for="family-select">Familia de productos</label>
+<div class="relative">
+<select class="w-full h-11 px-3 py-2 pr-9 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer" id="family-select">
+<option selected="" value="GROCERY I">GROCERY I (Abarrotes y despensa)</option>
+<option value="BEVERAGES">BEVERAGES (Bebidas)</option>
+<option value="CLEANING">CLEANING (Limpieza y hogar)</option>
+<option value="DAIRY">DAIRY (Lácteos)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 text-[18px] text-on-surface-variant pointer-events-none">inventory_2</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Cluster con alta rotación promedio</span>
+</div>
+<!-- Campo 3: Fecha histórica a estimar -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" for="date-select">Fecha histórica a estimar</label>
+<div class="relative">
+<input class="w-full h-11 px-3 py-2 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer" id="date-select" max="2017-08-31" min="2013-01-01" type="date" value="2017-08-15"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Historial disponible: Ene 2013 - Ago 2017</span>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-md mt-space-lg pt-space-md bg-surface-container-low/40 -mx-space-lg -mb-space-lg px-space-lg py-space-md rounded-b-xl">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">memory</span>
+<span>Inferencia directa sin recarga de página (Pre-calibración PyTorch)</span>
+</div>
+<div class="flex items-center gap-space-sm w-full sm:w-auto">
+<button class="w-1/2 sm:w-auto px-4 py-2 rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md shadow-sm hover:bg-surface-container-high transition-colors" id="btn-reset" type="button">
+            Limpiar filtros
+          </button>
+<button class="w-1/2 sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md shadow-sm hover:bg-primary transition-all" id="btn-run" type="submit">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Generar predicción</span>
+</button>
+</div>
+</div>
+</form>
+</section>
+<!-- 3. Tarjetas de estado y visualización de resultados -->
+<section class="space-y-space-md mb-space-xl">
+<!-- Panel de resultado activo -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm relative overflow-hidden transition-all duration-300" id="results-panel">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between pb-space-md gap-space-sm">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Predicción generada con éxito</h3>
+<span class="px-2 py-0.5 rounded-lg bg-secondary-fixed/70 text-on-secondary-fixed font-label-sm text-label-sm font-semibold">95% Confianza</span>
+</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2 mt-0.5">
+<span>Inferencia realizada en 14ms (PyTorch CPU)</span>
+<span>•</span>
+<span class="text-primary font-medium">Semilla Determinística #42</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 self-start lg:self-auto bg-surface-container-low px-3 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[16px] text-tertiary">tune</span>
+<span class="font-label-sm text-label-sm text-on-surface">MLP Regressor v1.2 • Checkpoint 50 épocas</span>
+</div>
+</div>
+<!-- Result Breakdown Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-center pt-space-sm">
+<!-- Big Metric Callout (Left Column) -->
+<div class="lg:col-span-6 bg-surface-container-low/70 rounded-xl p-space-lg flex flex-col justify-between">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Demanda proyectada</span>
+<span class="material-symbols-outlined text-primary text-[22px]">show_chart</span>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-metric-display text-metric-display text-on-surface tracking-tight" id="metric-main-value">2.845</span>
+<span class="font-headline-sm text-headline-sm text-on-surface-variant">unidades estimadas</span>
+</div>
+<div class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">align_horizontal_left</span>
+<span>Intervalo de confianza 95%: [2.710 - 2.980] u.</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs text-on-surface-variant font-label-sm text-label-sm flex items-center justify-between">
+<span>Desviación estándar calculada: σ = 68.8 u.</span>
+<span class="text-secondary font-medium">+4.2% vs. promedio histórico</span>
+</div>
+</div>
+<!-- Entity Context Grid (Right Column) -->
+<div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-space-md">
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Punto de venta</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-1" id="result-store">Tienda 1</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-auto pt-2">Quito Centro (Pichincha)</span>
+</div>
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Categoría analizada</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-1 truncate" id="result-family">GROCERY I</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-auto pt-2">Abarrotes alta rotación</span>
+</div>
+<div class="p-space-md rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Fecha de evaluación</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-1" id="result-date">15/08/2017</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-auto pt-2">Día hábil (Martes)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Mensaje aclaratorio de rigor institucional -->
+<div class="bg-surface-container-high/60 rounded-xl p-space-md flex items-start gap-space-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-[22px] flex-shrink-0 mt-0.5">verified_user</span>
+<div class="text-body-sm font-body-sm leading-relaxed">
+<strong class="font-semibold text-on-surface">Importante:</strong> Las predicciones son estimaciones de ventas calculadas con datos históricos estructurados y no representan stock físico disponible en góndola ni inventario en almacén. Diseñado con fines de simulación analítica e investigación logística.
+      </div>
+</div>
+</section>
+<!-- 4. Sección de visualización de estados complementarios (UI interactiva visible) -->
+<section class="mb-space-xl">
+<div class="flex items-center justify-between mb-space-md">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Simulación de estados del flujo inferencial</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Explorá cómo responde la interfaz frente a diversos eventos del ciclo de ejecución predictiva.</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider hidden sm:inline-block">Micro-estados interactivos</span>
+</div>
+<!-- Tabs / Trigger Controls for States -->
+<div class="flex gap-2 p-1.5 bg-surface-container-low rounded-xl mb-space-md overflow-x-auto">
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md bg-surface-container-lowest text-on-surface shadow-sm font-semibold whitespace-nowrap transition-all" id="tab-active" onclick="window.switchUiState('active')" type="button">
+        1. Estado con resultado activo
+      </button>
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60 whitespace-nowrap transition-all" id="tab-empty" onclick="window.switchUiState('empty')" type="button">
+        2. Estado inicial / Vacío
+      </button>
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60 whitespace-nowrap transition-all" id="tab-loading" onclick="window.switchUiState('loading')" type="button">
+        3. Procesamiento en curso
+      </button>
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60 whitespace-nowrap transition-all" id="tab-error" onclick="window.switchUiState('error')" type="button">
+        4. Control de límites (Fuera de rango)
+      </button>
+</div>
+<!-- State Viewport Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm min-h-[180px] flex items-center justify-center">
+<!-- Container 1: Mockup Estado Inicial / Vacío -->
+<div class="hidden flex-col items-center text-center max-w-md py-6" id="state-empty-view">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center text-tertiary mb-3">
+<span class="material-symbols-outlined text-[30px]">analytics</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">Sin consulta activa</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Seleccioná tienda, familia y fecha para visualizar la proyección generada por el perceptrón multicapa.</p>
+<button class="mt-4 px-4 py-1.5 rounded-lg bg-surface-container-low text-primary font-label-sm text-label-sm hover:bg-surface-container transition-colors" onclick="window.switchUiState('loading'); setTimeout(() =&gt; window.switchUiState('active'), 1200);" type="button">
+          Cargar demo automático
+        </button>
+</div>
+<!-- Container 2: Mockup Estado de Procesamiento -->
+<div class="hidden flex-col items-center text-center max-w-sm py-6 w-full" id="state-loading-view">
+<div class="relative w-12 h-12 mb-3">
+<div class="w-12 h-12 rounded-full border-4 border-surface-container-high border-t-primary animate-spin"></div>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">Calculando estimación con red neuronal...</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-4">Cargando pesos feed-forward y normalizando features temporales.</p>
+<!-- Progress Bar Indicator -->
+<div class="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-1.5 rounded-full w-3/4 animate-pulse"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-2">Latencia estimada: &lt; 20ms</span>
+</div>
+<!-- Container 3: Mockup Control de Límites -->
+<div class="hidden flex-col items-center text-center max-w-md py-6" id="state-error-view">
+<div class="w-14 h-14 rounded-full bg-error-container flex items-center justify-center text-error mb-3">
+<span class="material-symbols-outlined text-[30px]">warning</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-error mb-1">Fecha fuera del rango validado</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">El registro solicitado excede la partición histórica de evaluación (2013-01-01 al 2017-08-31). El modelo no extrapola datos fuera de la partición de prueba.</p>
+<button class="mt-4 px-4 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container transition-colors" onclick="document.getElementById('date-select').value='2017-08-15'; window.switchUiState('active');" type="button">
+          Restablecer a 15/08/2017
+        </button>
+</div>
+<!-- Container 4: Summary Note of current Active State -->
+<div class="flex flex-col sm:flex-row items-center justify-between w-full gap-space-md py-2" id="state-active-view">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-xl bg-secondary-fixed/50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[26px]">memory</span>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Simulador en estado nominal</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">El modelo procesa predicciones en caliente mediante tensores pre-calculados.</div>
+</div>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-container-low text-primary font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+          Escuchando solicitudes de inferencia
+        </span>
+</div>
+</div>
+</section>
+<!-- 5. Gráfico de contexto histórico reciente (SVG embebido interactivo de línea limpia) -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm mb-space-xl">
+<div class="flex flex-col md:flex-row md:items-center justify-between pb-space-lg gap-space-md">
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-md text-headline-md text-on-surface">Contexto histórico reciente</h3>
+<span class="px-2 py-0.5 rounded-lg bg-surface-container text-primary font-label-sm text-label-sm">Últimos 14 días</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Comparativa entre demanda real observada vs. estimación generada por la Red Neuronal MLP.</p>
+</div>
+<!-- Legend -->
+<div class="flex flex-wrap items-center gap-space-md font-label-sm text-label-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary"></span>
+<span class="text-on-surface">Ventas reales observadas</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-1 bg-secondary-container rounded-full"></span>
+<span class="text-on-surface">Predicción MLP (15 Ago)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-primary/10 rounded-sm"></span>
+<span class="text-on-surface-variant">Intervalo confianza 95%</span>
+</div>
+</div>
+</div>
+<!-- Chart Visual Canvas (Pure Inline SVG) -->
+<div class="relative w-full h-72 pt-4">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 900 240">
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"></stop>
+<stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"></stop>
+</lineargradient>
+<lineargradient id="confidenceArea" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#006c49" stop-opacity="0.12"></stop>
+<stop offset="100%" stop-color="#006c49" stop-opacity="0.02"></stop>
+</lineargradient>
+</defs>
+<!-- Horizontal Guide Lines -->
+<line stroke="#eff4ff" stroke-width="1" x1="40" x2="880" y1="30" y2="30"></line>
+<line stroke="#eff4ff" stroke-width="1" x1="40" x2="880" y1="80" y2="80"></line>
+<line stroke="#eff4ff" stroke-width="1" x1="40" x2="880" y1="130" y2="130"></line>
+<line stroke="#eff4ff" stroke-width="1" x1="40" x2="880" y1="180" y2="180"></line>
+<!-- Y-Axis Labels -->
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="end" x="30" y="34">3.5k</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="end" x="30" y="84">3.0k</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="end" x="30" y="134">2.5k</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="end" x="30" y="184">2.0k</text>
+<!-- 95% Confidence Interval polygon on projection point (x=830) -->
+<polygon fill="url(#confidenceArea)" points="770,95 830,78 880,82 880,118 830,122 770,112"></polygon>
+<line stroke="#006c49" stroke-dasharray="3 3" stroke-width="1.5" x1="830" x2="830" y1="78" y2="122"></line>
+<!-- Area Fill under historical line -->
+<path d="M 60,140 L 120,132 L 180,125 L 240,110 L 300,105 L 360,122 L 420,130 L 480,95 L 540,88 L 600,102 L 660,115 L 720,108 L 770,104 L 770,210 L 60,210 Z" fill="url(#chartGradient)"></path>
+<!-- Historical Trend Line -->
+<path d="M 60,140 L 120,132 L 180,125 L 240,110 L 300,105 L 360,122 L 420,130 L 480,95 L 540,88 L 600,102 L 660,115 L 720,108 L 770,104" fill="none" stroke="#2563eb" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+<!-- Historical Points -->
+<circle cx="60" cy="140" fill="#2563eb" r="3.5"></circle>
+<circle cx="120" cy="132" fill="#2563eb" r="3.5"></circle>
+<circle cx="180" cy="125" fill="#2563eb" r="3.5"></circle>
+<circle cx="240" cy="110" fill="#2563eb" r="3.5"></circle>
+<circle cx="300" cy="105" fill="#2563eb" r="3.5"></circle>
+<circle cx="360" cy="122" fill="#2563eb" r="3.5"></circle>
+<circle cx="420" cy="130" fill="#2563eb" r="3.5"></circle>
+<circle cx="480" cy="95" fill="#2563eb" r="3.5"></circle>
+<circle cx="540" cy="88" fill="#2563eb" r="3.5"></circle>
+<circle cx="600" cy="102" fill="#2563eb" r="3.5"></circle>
+<circle cx="660" cy="115" fill="#2563eb" r="3.5"></circle>
+<circle cx="720" cy="108" fill="#2563eb" r="3.5"></circle>
+<circle cx="770" cy="104" fill="#2563eb" r="3.5"></circle>
+<!-- Projection Connection Line (Dashed) -->
+<path d="M 770,104 L 830,98" fill="none" stroke="#006c49" stroke-dasharray="4 4" stroke-width="2"></path>
+<!-- Model Predicted Point (15 Ago) -->
+<circle cx="830" cy="98" fill="#006c49" r="6"></circle>
+<circle class="animate-ping" cx="830" cy="98" fill="#006c49" opacity="0.2" r="10"></circle>
+<!-- Target Annotation Callout Box -->
+<g transform="translate(760, 36)">
+<rect fill="#0b1c30" height="34" rx="4" width="130"></rect>
+<text fill="#dae2fd" font-family="Inter" font-size="10" font-weight="600" text-anchor="middle" x="65" y="16">Predicción: 2.845 u.</text>
+<text fill="#bec6e0" font-family="Inter" font-size="9" text-anchor="middle" x="65" y="28">Target 15 Ago 2017</text>
+</g>
+<!-- X-Axis Labels -->
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="60" y="228">02 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="180" y="228">04 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="300" y="228">06 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="420" y="228">08 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="540" y="228">10 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="660" y="228">12 Ago</text>
+<text fill="#737686" font-family="Inter" font-size="10" text-anchor="middle" x="770" y="228">14 Ago (Real)</text>
+<text fill="#006c49" font-family="Inter" font-size="10" font-weight="600" text-anchor="middle" x="830" y="228">15 Ago (MLP)</text>
+</svg>
+</div>
+<!-- Chart Bottom Info Footer -->
+<div class="mt-space-md pt-space-sm flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm bg-surface-container-low/50 p-space-sm rounded-lg text-on-surface-variant font-label-sm text-label-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary">info</span>
+<span>El intervalo representa una distribución normal empírica con desviación calculada sobre residuos de validación.</span>
+</div>
+<div class="flex items-center gap-4">
+<span>RMSE local: <strong class="text-on-surface">112.4 u.</strong></span>
+<span>MAPE de segmento: <strong class="text-on-surface">3.8%</strong></span>
+</div>
+</div>
+</section>
+<!-- Script de Micro-interacciones e Inferencia Local Dinámica -->
+<script>
+    (function() {
+      // Estado UI interactivo
+      window.switchUiState = function(state) {
+        const tabs = ['active', 'empty', 'loading', 'error'];
+        tabs.forEach(t => {
+          const tabBtn = document.getElementById('tab-' + t);
+          const view = document.getElementById('state-' + t + '-view');
+          if (tabBtn) {
+            if (t === state) {
+              tabBtn.className = "px-4 py-2 rounded-lg font-label-md text-label-md bg-surface-container-lowest text-on-surface shadow-sm font-semibold whitespace-nowrap transition-all";
+            } else {
+              tabBtn.className = "px-4 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60 whitespace-nowrap transition-all";
+            }
+          }
+          if (view) {
+            if (t === state) {
+              view.classList.remove('hidden');
+              view.classList.add('flex');
+            } else {
+              view.classList.remove('flex');
+              view.classList.add('hidden');
+            }
+          }
+        });
+      };
+
+      // Simulación de inferencia basada en selecciones
+      window.runInferenceSimulation = function() {
+        const store = document.getElementById('store-select').value;
+        const family = document.getElementById('family-select').value;
+        const date = document.getElementById('date-select').value;
+        const btnRun = document.getElementById('btn-run');
+
+        // Feedback de procesamiento en el botón
+        const originalBtnText = btnRun.innerHTML;
+        btnRun.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Procesando...</span>';
+        btnRun.disabled = true;
+
+        // Comprobación de límites (Validación)
+        if (date > '2017-08-31' || date < '2013-01-01') {
+          setTimeout(() => {
+            window.switchUiState('error');
+            btnRun.innerHTML = originalBtnText;
+            btnRun.disabled = false;
+          }, 400);
+          return;
+        }
+
+        setTimeout(() => {
+          // Generación de cifras verosímiles por categoría y tienda
+          const baseMap = {
+            'GROCERY I': { base: 2840, spread: 130 },
+            'BEVERAGES': { base: 2190, spread: 110 },
+            'CLEANING': { base: 1420, spread: 85 },
+            'DAIRY': { base: 980, spread: 50 }
+          };
+          const multiplier = store === '44' ? 1.25 : (store === '2' ? 0.95 : (store === '45' ? 0.8 : 1.0));
+          const entry = baseMap[family] || { base: 1800, spread: 90 };
+          const est = Math.round(entry.base * multiplier + (Math.random() * 60 - 30));
+          const lower = est - entry.spread;
+          const upper = est + entry.spread;
+
+          // Formateo de fecha DD/MM/AAAA
+          const parts = date.split('-');
+          const formattedDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : date;
+
+          // Actualizar UI
+          document.getElementById('metric-main-value').textContent = est.toLocaleString('es-ES');
+          document.getElementById('result-store').textContent = `Tienda ${store}`;
+          document.getElementById('result-family').textContent = family;
+          document.getElementById('result-date').textContent = formattedDate;
+
+          // Reactivar estado nominal
+          window.switchUiState('active');
+          btnRun.innerHTML = originalBtnText;
+          btnRun.disabled = false;
+
+          // Efecto de pulso en tarjeta
+          const card = document.getElementById('results-panel');
+          card.classList.add('ring-2', 'ring-primary/20');
+          setTimeout(() => card.classList.remove('ring-2', 'ring-primary/20'), 600);
+        }, 350);
+      };
+
+      // Resetear filtros
+      document.getElementById('btn-reset').addEventListener('click', function() {
+        document.getElementById('store-select').value = '1';
+        document.getElementById('family-select').value = 'GROCERY I';
+        document.getElementById('date-select').value = '2017-08-15';
+        window.switchUiState('empty');
+      });
+
+      // Cargar piloto predefinido
+      document.getElementById('btn-load-sample').addEventListener('click', function() {
+        document.getElementById('store-select').value = '44';
+        document.getElementById('family-select').value = 'BEVERAGES';
+        document.getElementById('date-select').value = '2017-08-10';
+        window.runInferenceSimulation();
+      });
+    })();
+  </script>
+</div></main></div></body></html>

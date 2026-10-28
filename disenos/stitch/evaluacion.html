@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-container":"#eef0ff","primary-container":"#2563eb","outline":"#737686","on-error-container":"#93000a","on-tertiary-fixed-variant":"#3f465c","secondary-fixed":"#6ffbbe","surface-tint":"#0053db","surface-container":"#e5eeff","primary-fixed-dim":"#b4c5ff","tertiary-fixed-dim":"#bec6e0","tertiary-container":"#656d84","on-surface-variant":"#434655","on-tertiary":"#ffffff","inverse-surface":"#213145","surface-bright":"#f8f9ff","primary-fixed":"#dbe1ff","on-secondary-fixed":"#002113","secondary-fixed-dim":"#4edea3","surface":"#f8f9ff","on-secondary-container":"#00714d","surface-variant":"#d3e4fe","on-primary":"#ffffff","primary":"#004ac6","on-secondary-fixed-variant":"#005236","surface-dim":"#cbdbf5","surface-container-lowest":"#ffffff","surface-container-low":"#eff4ff","error-container":"#ffdad6","on-surface":"#0b1c30","surface-container-high":"#dce9ff","background":"#f8f9ff","error":"#ba1a1a","secondary-container":"#6cf8bb","on-secondary":"#ffffff","on-background":"#0b1c30","tertiary-fixed":"#dae2fd","inverse-primary":"#b4c5ff","outline-variant":"#c3c6d7","inverse-on-surface":"#eaf1ff","surface-container-highest":"#d3e4fe","on-error":"#ffffff","on-primary-fixed":"#00174b","on-primary-container":"#eeefff","on-tertiary-fixed":"#131b2e","secondary":"#006c49","on-primary-fixed-variant":"#003ea8","tertiary":"#4d556b"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5deg","full":"0.75rem"},"spacing":{"space-xs":"0.25rem","space-md":"1rem","space-sm":"0.5rem","space-lg":"1.5rem","gutter":"1.5rem","gutter-mobile":"1rem","margin":"2rem","margin-mobile":"1rem","space-xl":"2rem"},"fontFamily":{"label-lg":["Inter"],"metric-display":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-sm":["Inter"],"headline-md":["Plus Jakarta Sans"],"body-md":["Inter"],"headline-lg":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"body-sm":["Inter"],"headline-xl-mobile":["Plus Jakarta Sans"]},"fontSize":{"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}],"metric-display":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-xl":["36px",{"lineHeight":"44px","letterSpacing":"-0.025em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-lg-mobile":["22px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"headline-lg":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-sm":["16px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.005em","fontWeight":"400"}],"headline-xl-mobile":["28px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest border-r border-outline-variant/50 z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.02)]"><div class="flex flex-col"><div class="p-space-lg flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><img alt="StockPredict IA Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UKm110QQ8rL6auPE9jgod2RIeXwg9OjlFuD3fLzRc3zQAVwk4IMX41zs1LNItLHKev5RtgnspUejBb5zSKv1vgY9ojh98WQVeDl_RBJniu3VVRFuCTH7n1o_darDhPSeMHMiPFm9HMy9YYAUAtge99n2OsQpn7QxWGQ1iE--u5iKoN-EzNSYvsJ72OhTcgrkeJ-BZ_kXxNOgR0NKfzzGn08org4FUnLSdJCdl2UKol"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">StockPredict IA</span></div><div class="mt-space-xs inline-flex items-center self-start gap-1.5 px-2 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm border border-outline-variant/60"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span><span>Prototipo Académico v1.0</span></div></div><div class="px-space-md py-space-xs"><div class="px-space-sm pb-space-xs font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Navegación Experimental</div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg shadow-sm"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="inicio" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span>Inicio</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="predicciones" href="#"><span class="material-symbols-outlined text-[20px]">trending_up</span><span>Predicciones</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="evaluacion-del-modelo" href="#"><span class="material-symbols-outlined text-[20px]">analytics</span><span>Evaluación del modelo</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="historial-de-entrenamientos" href="#"><span class="material-symbols-outlined text-[20px]">history_edu</span><span>Historial de entrenamientos</span></a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="acerca-del-proyecto" href="#"><span class="material-symbols-outlined text-[20px]">info</span><span>Acerca del proyecto</span></a></nav></div></div><div class="p-space-md m-space-md rounded-xl bg-surface-container-low border border-outline-variant/40"><div class="flex items-center justify-between mb-2"><span class="font-label-sm text-label-sm text-on-surface-variant">Núcleo Predictivo</span><div class="flex items-center gap-1.5"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed-dim opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span><span class="font-label-sm text-label-sm text-secondary font-medium">Online</span></div></div><div class="text-body-sm font-body-sm text-on-surface mb-1 flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-primary">neurology</span><span>PyTorch 2.2 / MLP</span></div><div class="text-label-sm font-label-sm text-on-surface-variant/90 border-t border-outline-variant/30 pt-1.5 flex items-center justify-between"><span>Dataset activo:</span><span class="font-semibold text-on-surface">Favorita Grocery v1</span></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/40 z-40 px-space-xl flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-container-low border border-outline-variant/40 text-on-surface-variant font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] text-tertiary">dataset</span><span>Dataset Favorita • Partición Validada</span></div></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-3"><div class="text-right hidden sm:block"><div class="font-label-md text-label-md text-on-surface font-semibold">Dra. Elena Ruiz</div><div class="font-label-sm text-label-sm text-on-surface-variant">Investigación IA</div></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant/50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPjqF0H6s3pZ9WEfeqL51_9pU7k_dfqFelCgfUVJWAEExjJby48Aek4nW8Ue__LJowoBHKtADZMkLewcCgONrNtQO2oupt8wAx9-ciGva3vWvgOsk5J4p9N_Jee8RMpdJU5Y5Q1D1TFPfjOl2fNWmYaMcLI0E9PwdEmFkw7D-t1mDPVnNHsSbxRusJF8PDYWhDYjFBjEzOBeSgX2dOWfDrcuhaOEjbqr0l7zM0Bks"/></div></div></header><main class="relative pt-16 min-h-screen bg-surface w-full px-space-xl py-space-xl"><div class="flex flex-col w-full gap-space-xl">
+<!-- Page Header -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm uppercase tracking-wider">Métricas Experimentales • Fase 1</span>
+<span class="text-outline text-label-sm font-label-sm">ID Experimento: EXP-FAV-0924</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Evaluación del modelo y métricas experimentales</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Comparación cuantitativa entre la red neuronal MLP y el modelo de referencia (Baseline)</p>
+</div>
+<div class="flex items-center gap-space-sm self-start md:self-auto">
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors shadow-sm" onclick="window.print()">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar reporte</span>
+</button>
+<div class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary-container/20 text-on-secondary-container font-label-sm text-label-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary">verified</span>
+<span>Validación verificada</span>
+</div>
+</div>
+</section>
+<!-- Nota Metodológica Importante -->
+<aside class="relative overflow-hidden rounded-xl bg-surface-container-low p-space-lg shadow-sm">
+<div class="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-primary/5 pointer-events-none"></div>
+<div class="flex flex-col md:flex-row items-start md:items-center gap-space-md relative z-10">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-sm">
+<span class="material-symbols-outlined text-[24px]">science</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0 flex-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">Nota metodológica importante</span>
+<span class="px-2 py-0.5 rounded-lg bg-surface-container text-primary font-label-sm text-label-sm">Piloto Controlado</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          Los valores presentados corresponden estrictamente a los resultados del piloto experimental sobre dos tiendas y tres familias de productos (<strong class="text-on-surface font-semibold">186 ejemplos de test interno</strong>). No corresponden aún al modelo completo generalizado.
+        </p>
+</div>
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm whitespace-nowrap bg-surface-container-lowest px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span>Favorita Corpus v1-Subset</span>
+</div>
+</div>
+</aside>
+<!-- Tarjetas Síntesis de Métricas (4 KPIs) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
+<!-- MAE MLP -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">MAE • Red Neuronal MLP</span>
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[18px]">neurology</span>
+</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-metric-display text-metric-display text-on-surface tracking-tight font-bold">1,865662</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>Error absoluto medio por tienda/familia</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-label-sm font-label-sm text-secondary">
+<span class="inline-flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[14px]">trending_down</span> -3,07% vs Baseline
+        </span>
+<span class="text-on-surface-variant">Unidades reales</span>
+</div>
+</div>
+<!-- RMSE MLP -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RMSE • Red Neuronal MLP</span>
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed text-primary">
+<span class="material-symbols-outlined text-[18px]">functions</span>
+</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-metric-display text-metric-display text-on-surface tracking-tight font-bold">2,714053</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>Raíz del error cuadrático medio</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-label-sm font-label-sm text-primary">
+<span class="inline-flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[14px]">bolt</span> PyTorch 2.2 Optimizer
+        </span>
+<span class="text-on-surface-variant">AdamW • lr 1e-3</span>
+</div>
+</div>
+<!-- RMSE Baseline -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RMSE • Baseline semanal</span>
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container-high text-tertiary">
+<span class="material-symbols-outlined text-[18px]">history</span>
+</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-metric-display text-metric-display text-on-surface tracking-tight font-bold">3,150354</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>Referencia media semanal histórica</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span class="inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">tune</span> Modelo de control n=186
+        </span>
+<span class="text-on-surface-variant">Ventana 4 sem.</span>
+</div>
+</div>
+<!-- Reducción de error (RMSE) -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="absolute right-0 top-0 w-24 h-24 bg-secondary-fixed/20 rounded-bl-full pointer-events-none"></div>
+<div class="flex items-center justify-between mb-space-sm relative z-10">
+<span class="font-label-sm text-label-sm text-secondary font-semibold uppercase tracking-wider">Reducción de error (RMSE)</span>
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-on-secondary">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</span>
+</div>
+<div class="flex flex-col gap-1 relative z-10">
+<div class="flex items-baseline gap-2">
+<span class="font-metric-display text-metric-display text-secondary tracking-tight font-bold">-13,85%</span>
+<span class="px-2 py-0.5 rounded-lg bg-secondary-container/30 text-on-secondary-container font-label-sm text-label-sm font-semibold">Ganancia Neta</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span>Mejora cuadrática vs media histórica</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center justify-between text-label-sm font-label-sm text-secondary relative z-10">
+<span class="inline-flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> p-value &lt; 0.01 (Significativo)
+        </span>
+<span class="text-secondary font-semibold">Δ 0,4363</span>
+</div>
+</div>
+</section>
+<!-- Tabla Comparativa Principal -->
+<section class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<div class="p-space-lg bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">table_rows</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Tabla comparativa de rendimiento experimental</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Evaluación pareada de convergencia y dispersión residual sobre el conjunto de test (n = 186)</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-lg bg-surface-container font-label-sm text-label-sm text-primary font-semibold">Semilla: #42069</span>
+<span class="px-2.5 py-1 rounded-lg bg-surface-container font-label-sm text-label-sm text-on-surface-variant">Loss: Huber (δ=1.0)</span>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-3 px-space-lg font-semibold">Modelo / Enfoque</th>
+<th class="py-3 px-space-md font-semibold text-right font-mono">MAE</th>
+<th class="py-3 px-space-md font-semibold text-right font-mono">RMSE</th>
+<th class="py-3 px-space-md font-semibold text-center">Muestra de prueba (Test)</th>
+<th class="py-3 px-space-md font-semibold text-right">Reducción vs Baseline</th>
+<th class="py-3 px-space-lg font-semibold text-center">Estado experimental</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<!-- Fila 1: MLP -->
+<tr class="bg-surface-container-low/40 hover:bg-surface-container transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-on-primary-container shrink-0">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+</div>
+<div>
+<div class="font-semibold text-on-surface font-label-lg text-label-lg">Red Neuronal MLP (PyTorch)</div>
+<div class="text-on-surface-variant text-label-sm font-label-sm">Arquitectura 3 capas densas • ReLU • Dropout 0.2</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-md text-right font-mono text-on-surface font-medium tabular-nums">1,865662</td>
+<td class="py-3.5 px-space-md text-right font-mono text-primary font-bold tabular-nums">2,714053</td>
+<td class="py-3.5 px-space-md text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                186 ejemplos de test interno
+              </span>
+</td>
+<td class="py-3.5 px-space-md text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-secondary-fixed/40 text-on-secondary-fixed font-bold font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> -13,85% en RMSE
+              </span>
+</td>
+<td class="py-3.5 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-semibold font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">star</span> Modelo evaluado
+              </span>
+</td>
+</tr>
+<!-- Fila 2: Baseline -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[18px]">query_stats</span>
+</div>
+<div>
+<div class="font-semibold text-on-surface font-label-lg text-label-lg">Baseline semanal (Media móvil)</div>
+<div class="text-on-surface-variant text-label-sm font-label-sm">Heurística estacional rolling-7 con ponderación lineal</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-md text-right font-mono text-on-surface font-medium tabular-nums">1,924731</td>
+<td class="py-3.5 px-space-md text-right font-mono text-on-surface-variant font-medium tabular-nums">3,150354</td>
+<td class="py-3.5 px-space-md text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                186 ejemplos de test interno
+              </span>
+</td>
+<td class="py-3.5 px-space-md text-right">
+<span class="text-on-surface-variant font-label-sm text-label-sm font-mono">0,00% (Referencia base)</span>
+</td>
+<td class="py-3.5 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant font-medium font-label-sm text-label-sm">
+                Modelo de control
+              </span>
+</td>
+</tr>
+<!-- Fila 3: Diferencia neta -->
+<tr class="bg-surface-container-high/40 hover:bg-surface-container-high/70 transition-colors font-semibold">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-on-secondary shrink-0">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+</div>
+<div>
+<div class="font-bold text-on-surface font-label-lg text-label-lg">Diferencia neta (Ganancia)</div>
+<div class="text-secondary text-label-sm font-label-sm font-medium">Margen absoluto de optimización predictiva</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-md text-right font-mono text-secondary font-bold tabular-nums">-0,059069</td>
+<td class="py-3.5 px-space-md text-right font-mono text-secondary font-bold tabular-nums">-0,436301</td>
+<td class="py-3.5 px-space-md text-center text-label-sm font-label-sm text-on-surface-variant">186 ejemplos de test interno</td>
+<td class="py-3.5 px-space-md text-right font-mono text-secondary font-bold">-13,85%</td>
+<td class="py-3.5 px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-secondary/10 text-secondary font-bold font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">auto_graph</span> Ventaja predictiva demostrada
+              </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Gráficos Comparativos (Barras y Convergencia) -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
+<!-- Gráfico 1: Barras comparativas de MAE y RMSE -->
+<div class="flex flex-col p-space-lg rounded-xl bg-surface-container-lowest shadow-sm gap-space-md">
+<div class="flex items-start justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">bar_chart</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Comparación de errores: MLP vs Baseline</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Disminución proporcional en MAE y RMSE sobre la partición fija</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface">
+<span class="w-3 h-3 rounded bg-primary"></span>
+<span>MLP</span>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface-variant">
+<span class="w-3 h-3 rounded bg-surface-variant"></span>
+<span>Baseline</span>
+</div>
+</div>
+</div>
+<!-- SVG Chart: Grouped Bars -->
+<div class="relative w-full h-64 flex items-end pt-4 pb-2 px-2 bg-surface-container-low/30 rounded-xl">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 500 220">
+<defs>
+<lineargradient id="barMlpGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#004ac6" stop-opacity="1"></stop>
+<stop offset="100%" stop-color="#2563eb" stop-opacity="0.8"></stop>
+</lineargradient>
+<lineargradient id="barBaseGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#bec6e0" stop-opacity="0.9"></stop>
+<stop offset="100%" stop-color="#d3e4fe" stop-opacity="0.7"></stop>
+</lineargradient>
+</defs>
+<!-- Grid horizontal lines -->
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="40" x2="480" y1="30" y2="30"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="32" y="34">3.50</text>
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="40" x2="480" y1="80" y2="80"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="32" y="84">2.50</text>
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="40" x2="480" y1="130" y2="130"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="32" y="134">1.50</text>
+<line opacity="0.6" stroke="#737686" stroke-width="1.2" x1="40" x2="480" y1="180" y2="180"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="32" y="184">0.00</text>
+<!-- Group 1: MAE -->
+<!-- MLP: 1.865662 -> height = (1.865 / 3.5) * 150 = 80px -> y = 180 - 80 = 100 -->
+<rect class="transition-all duration-300 hover:opacity-90 cursor-pointer" fill="url(#barMlpGradient)" height="80" rx="3" width="46" x="110" y="100"></rect>
+<text fill="#004ac6" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="133" y="93">1,865</text>
+<!-- Baseline MAE: 1.924731 -> height = (1.924 / 3.5) * 150 = 82.5px -> y = 180 - 82.5 = 97.5 -->
+<rect class="transition-all duration-300 hover:opacity-90 cursor-pointer" fill="url(#barBaseGradient)" height="82.5" rx="3" width="46" x="166" y="97.5"></rect>
+<text fill="#434655" font-family="Inter" font-size="11" font-weight="500" text-anchor="middle" x="189" y="90">1,925</text>
+<text fill="#0b1c30" font-family="Inter" font-size="12" font-weight="600" text-anchor="middle" x="161" y="200">MAE (Error Absoluto)</text>
+<text fill="#006c49" font-family="Inter" font-size="10" text-anchor="middle" x="161" y="214">-3,07% reducción</text>
+<!-- Group 2: RMSE -->
+<!-- MLP: 2.714053 -> height = (2.714 / 3.5) * 150 = 116.3px -> y = 180 - 116.3 = 63.7 -->
+<rect class="transition-all duration-300 hover:opacity-90 cursor-pointer" fill="url(#barMlpGradient)" height="116.3" rx="3" width="46" x="310" y="63.7"></rect>
+<text fill="#004ac6" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="333" y="56">2,714</text>
+<!-- Baseline RMSE: 3.150354 -> height = (3.150 / 3.5) * 150 = 135px -> y = 180 - 135 = 45 -->
+<rect class="transition-all duration-300 hover:opacity-90 cursor-pointer" fill="url(#barBaseGradient)" height="135" rx="3" width="46" x="366" y="45"></rect>
+<text fill="#434655" font-family="Inter" font-size="11" font-weight="500" text-anchor="middle" x="389" y="38">3,150</text>
+<text fill="#0b1c30" font-family="Inter" font-size="12" font-weight="600" text-anchor="middle" x="361" y="200">RMSE (Error Cuadrático)</text>
+<text fill="#006c49" font-family="Inter" font-size="10" font-weight="700" text-anchor="middle" x="361" y="214">-13,85% reducción</text>
+</svg>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant px-1">
+<span class="inline-flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">trending_down</span>
+          Mayor sensibilidad del RMSE a penalización de colas largas
+        </span>
+<span class="font-mono text-label-sm text-label-sm text-primary font-semibold">Δ RMSE: 0,4363</span>
+</div>
+</div>
+<!-- Gráfico 2: Curva de convergencia de pérdida (Loss) -->
+<div class="flex flex-col p-space-lg rounded-xl bg-surface-container-lowest shadow-sm gap-space-md">
+<div class="flex items-start justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">insights</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Curva de convergencia del piloto</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Loss de entrenamiento vs validación • 60 Épocas (sin sobreajuste)</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-primary font-medium">
+<span class="w-3 h-0.5 bg-primary"></span>
+<span>Train Loss</span>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-secondary font-medium">
+<span class="w-3 h-0.5 bg-secondary stroke-dashed"></span>
+<span>Val Loss</span>
+</div>
+</div>
+</div>
+<!-- SVG Chart: Convergence Curve -->
+<div class="relative w-full h-64 flex items-end pt-4 pb-2 px-2 bg-surface-container-low/30 rounded-xl">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 500 220">
+<defs>
+<lineargradient id="valLossArea" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#006c49" stop-opacity="0.15"></stop>
+<stop offset="100%" stop-color="#006c49" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Grid horizontal lines -->
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="45" x2="480" y1="30" y2="30"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="36" y="34">4.0</text>
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="45" x2="480" y1="75" y2="75"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="36" y="79">3.0</text>
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="45" x2="480" y1="120" y2="120"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="36" y="124">2.0</text>
+<line opacity="0.4" stroke="#c3c6d7" stroke-dasharray="3 3" stroke-width="0.8" x1="45" x2="480" y1="165" y2="165"></line>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="end" x="36" y="169">1.0</text>
+<line opacity="0.6" stroke="#737686" stroke-width="1.2" x1="45" x2="480" y1="180" y2="180"></line>
+<!-- X-Axis Labels (Epochs) -->
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="50" y="196">Ep 1</text>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="135" y="196">Ep 15</text>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="220" y="196">Ep 30</text>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="305" y="196">Ep 45</text>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="390" y="196">Ep 55</text>
+<text fill="#434655" font-family="Inter" font-size="10" text-anchor="middle" x="470" y="196">Ep 60</text>
+<!-- Early Stopping reference vertical line at Epoch 52 -->
+<line opacity="0.6" stroke="#004ac6" stroke-dasharray="2 2" stroke-width="1.2" x1="415" x2="415" y1="30" y2="180"></line>
+<text fill="#004ac6" font-family="Inter" font-size="9" font-weight="600" text-anchor="middle" x="415" y="24">Early Stopping (Ep 52)</text>
+<!-- Val Loss Area fill -->
+<path d="M 50,42 C 90,65 140,110 200,128 C 260,136 320,139 370,140 C 415,141 450,142 470,142 L 470,180 L 50,180 Z" fill="url(#valLossArea)"></path>
+<!-- Train Loss Path (Smooth decay) -->
+<path d="M 50,38 C 90,68 140,118 200,138 C 260,148 320,152 370,154 C 415,155 450,156 470,157" fill="none" stroke="#004ac6" stroke-linecap="round" stroke-width="2.2"></path>
+<!-- Validation Loss Path (Close parallel, stabilizes ~141) -->
+<path d="M 50,42 C 90,65 140,110 200,128 C 260,136 320,139 370,140 C 415,141 450,142 470,142" fill="none" stroke="#006c49" stroke-dasharray="4 3" stroke-linecap="round" stroke-width="2.2"></path>
+<!-- Final Points -->
+<circle cx="470" cy="157" fill="#004ac6" r="3.5"></circle>
+<circle cx="470" cy="142" fill="#006c49" r="3.5"></circle>
+</svg>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant px-1">
+<span class="inline-flex items-center gap-1.5 text-secondary font-medium">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+          Generalización estable: Gap Train-Val ≤ 0,084
+        </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Convergencia en 52 épocas</span>
+</div>
+</div>
+</section>
+<!-- Desglose Detallado del Piloto de Validación -->
+<section class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">domain_verification</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Desglose del piloto de validación cruzada</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Partición fija: Test Set Estratificado</span>
+</div>
+<!-- 3-Column Layout: Tiendas, Familias, Estadísticas -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Tarjeta 1: Tiendas Seleccionadas -->
+<div class="flex flex-col p-space-lg rounded-xl bg-surface-container-lowest shadow-sm gap-space-md justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Unidades Operativas</span>
+<span class="px-2 py-0.5 rounded-lg bg-surface-container text-primary font-label-sm text-label-sm font-semibold">2 Tiendas</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Tiendas del Piloto Experimental</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Seleccionadas por alta densidad transaccional y completitud histórica ininterrumpida.</p>
+<div class="flex flex-col gap-2 mt-2">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px]">storefront</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Tienda 44 (Quito Centro)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Formato Supermercado • Clúster A</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-mono text-secondary font-bold">RMSE 2,68</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[20px]">storefront</span>
+<div>
+<div class="font-label-md text-label-md text-on-surface font-semibold">Tienda 47 (Guayaquil Sur)</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Formato Hipermercado • Clúster D</div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm font-mono text-secondary font-bold">RMSE 2,75</span>
+</div>
+</div>
+</div>
+<div class="pt-space-xs text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+<span>Cobertura geográfica:</span>
+<span class="font-semibold text-on-surface">Sierra / Costa</span>
+</div>
+</div>
+<!-- Tarjeta 2: Familias de Productos -->
+<div class="flex flex-col p-space-lg rounded-xl bg-surface-container-lowest shadow-sm gap-space-md justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Categorización</span>
+<span class="px-2 py-0.5 rounded-lg bg-surface-container text-primary font-label-sm text-label-sm font-semibold">3 Familias</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Familias de Productos Evaluadas</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Representativas de alta rotación de inventario con variabilidad estacional marcada.</p>
+<div class="flex flex-col gap-2 mt-2">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">local_grocery_store</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">GROCERY I</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm font-mono">62 obs</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">local_cafe</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">BEVERAGES</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm font-mono">62 obs</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">sanitizer</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">CLEANING</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm font-mono">62 obs</span>
+</div>
+</div>
+</div>
+<div class="pt-space-xs text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+<span>Distribución de clases:</span>
+<span class="font-semibold text-secondary">Balanceada 1:1:1</span>
+</div>
+</div>
+<!-- Tarjeta 3: Resumen Estadístico de 186 Observaciones -->
+<div class="flex flex-col p-space-lg rounded-xl bg-surface-container-lowest shadow-sm gap-space-md justify-between">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Inferencia Test</span>
+<span class="px-2 py-0.5 rounded-lg bg-surface-container text-primary font-label-sm text-label-sm font-semibold">186 Muestras</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-surface">Resumen de Test Interno</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Métricas distribucionales pareadas sobre las series temporales de validación.</p>
+<div class="flex flex-col gap-2 mt-2">
+<div class="flex items-center justify-between text-body-sm font-body-sm py-1 border-b border-surface-container-high/30">
+<span class="text-on-surface-variant">Total observaciones pareadas:</span>
+<span class="font-mono font-semibold text-on-surface">186 registros</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-1 border-b border-surface-container-high/30">
+<span class="text-on-surface-variant">Desviación estándar residual:</span>
+<span class="font-mono font-semibold text-on-surface">σ = 1,4128</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-1 border-b border-surface-container-high/30">
+<span class="text-on-surface-variant">Error percentil 90 (P90):</span>
+<span class="font-mono font-semibold text-on-surface">3,24 unidades</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm py-1">
+<span class="text-on-surface-variant">Prueba de Wilcoxon (W-test):</span>
+<span class="font-mono font-semibold text-secondary">p = 0.0031</span>
+</div>
+</div>
+</div>
+<div class="pt-space-xs text-label-sm font-label-sm text-on-surface-variant flex items-center justify-between">
+<span>Ventana temporal:</span>
+<span class="font-semibold text-on-surface">31 días continuos</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Conclusiones del Experimento Académico -->
+<section class="flex flex-col md:flex-row items-center gap-space-lg p-space-xl rounded-xl bg-surface-container-low shadow-sm">
+<div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-md">
+<span class="material-symbols-outlined text-[32px]">psychology_alt</span>
+</div>
+<div class="flex flex-col gap-2 flex-1">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">Hallazgo Teórico • Conclusión de Tesis</span>
+<span class="px-2 py-0.5 rounded-lg bg-secondary-fixed/40 text-on-secondary-fixed font-label-sm text-label-sm font-semibold">Hipótesis H1 Validada</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold">
+        “La arquitectura MLP captura patrones no lineales de demanda semanal con mayor precisión que el promedio móvil simple”
+      </h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+        El descenso del <strong class="text-on-surface">13,85% en el error cuadrático medio (RMSE)</strong> y la estabilidad observada en el gradiente de validación demuestran que las capas densas interconectadas logran modelar correlaciones entre promociones, días de la semana y choques de demanda que una media histórica lineal ignora sistemáticamente.
+      </p>
+</div>
+<div class="flex flex-col items-center md:items-end gap-2 shrink-0">
+<a class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary/90 transition-colors shadow-sm" href="#">
+<span>Ver Historial de Entrenamientos</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Siguiente fase: Escalado a 54 tiendas</span>
+</div>
+</section>
+</div></main></div></body></html>

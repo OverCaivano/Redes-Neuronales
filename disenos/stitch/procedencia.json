@@ -1,0 +1,52 @@
+[
+  {
+    "origen": "Descargas/1/code.html",
+    "copia": "predicciones.html",
+    "sha256": "845061a022f9a9d500d631ed350f51b05fdb88391bbe3068d4854f342bf65ceb"
+  },
+  {
+    "origen": "Descargas/1/DESIGN.md",
+    "copia": "predicciones_DESIGN.md",
+    "sha256": "1f919e18df1846fb11d88a156c6c43a3c8da3083a531327528be0fa03cf4a66a"
+  },
+  {
+    "origen": "Descargas/2/code2.html",
+    "copia": "inicio.html",
+    "sha256": "8eaa422b78f2306a599c715449216569af1c9c3326a13dc2b38b3aedc836804d"
+  },
+  {
+    "origen": "Descargas/2/DESIGN2.md",
+    "copia": "inicio_DESIGN.md",
+    "sha256": "1f919e18df1846fb11d88a156c6c43a3c8da3083a531327528be0fa03cf4a66a"
+  },
+  {
+    "origen": "Descargas/3/code3.html",
+    "copia": "evaluacion.html",
+    "sha256": "0bb6eecad403e1c367bdec21bc386251c7233fd5db8c74d7fa32df7ee791ec73"
+  },
+  {
+    "origen": "Descargas/3/DESIGN3.md",
+    "copia": "evaluacion_DESIGN.md",
+    "sha256": "1f919e18df1846fb11d88a156c6c43a3c8da3083a531327528be0fa03cf4a66a"
+  },
+  {
+    "origen": "Descargas/4/code4.html",
+    "copia": "acerca.html",
+    "sha256": "362d378c00c6b73beabb8f75681d9cd8c04577818222820a71b8fc73bccc1c1b"
+  },
+  {
+    "origen": "Descargas/4/DESIGN4.md",
+    "copia": "acerca_DESIGN.md",
+    "sha256": "1f919e18df1846fb11d88a156c6c43a3c8da3083a531327528be0fa03cf4a66a"
+  },
+  {
+    "origen": "Descargas/5/code5.html",
+    "copia": "historial.html",
+    "sha256": "8581d612343ed3885a5f1da6f6162991f10cee3210dc2f679d5b1bd0a90ac385"
+  },
+  {
+    "origen": "Descargas/5/DESIGN5.md",
+    "copia": "historial_DESIGN.md",
+    "sha256": "1f919e18df1846fb11d88a156c6c43a3c8da3083a531327528be0fa03cf4a66a"
+  }
+]

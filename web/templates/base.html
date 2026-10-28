@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titulo }} · StockPredict IA</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script src="/static/tema.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/estilos.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body class="bg-surface font-body-md text-on-surface">
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest border-r border-outline-variant/50 z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.02)]" id="navegacion">
+    <div class="flex flex-col">
+      <div class="p-space-lg flex flex-col gap-space-xs">
+        <div class="flex items-center gap-space-sm">
+          <span aria-hidden="true" class="marca">SP</span>
+          <span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">StockPredict IA</span>
+        </div>
+        <div class="mt-space-xs inline-flex items-center self-start gap-1.5 px-2 py-0.5 rounded-lg bg-surface-container-high text-primary font-label-sm text-label-sm border border-outline-variant/60">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+          <span>Prototipo Académico v1.0</span>
+        </div>
+      </div>
+      <div class="px-space-md py-space-xs">
+        <div class="px-space-sm pb-space-xs font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Navegación Experimental</div>
+        <nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg shadow-sm">
+          {% for clave, nombre in paginas.items() %}
+          <a aria-current="{{ 'page' if pagina == clave else 'false' }}" class="nav-link {% if pagina == clave %}activo{% endif %}" href="/{{ clave }}">
+            <span aria-hidden="true" class="nav-icon">{{ {'inicio':'▦','predicciones':'↗','evaluacion':'▥','historial':'◷','acerca':'ⓘ'}[clave] }}</span>
+            {{ nombre }}
+          </a>
+          {% endfor %}
+        </nav>
+      </div>
+    </div>
+    <div class="p-space-md m-space-md rounded-xl bg-surface-container-low border border-outline-variant/40">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-label-sm text-label-sm text-on-surface-variant">Núcleo Predictivo</span>
+        <div class="flex items-center gap-1.5">
+          <span class="relative flex h-2 w-2"><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span>
+          <span class="font-label-sm text-label-sm text-secondary font-medium">Piloto local</span>
+        </div>
+      </div>
+      <div class="text-body-sm font-body-sm text-on-surface mb-1 flex items-center gap-1.5"><span class="text-primary">◇</span><span>PyTorch / MLP</span></div>
+      <div class="text-label-sm font-label-sm text-on-surface-variant/90 border-t border-outline-variant/30 pt-1.5 flex items-center justify-between">
+        <span>Dataset activo:</span>
+        <span class="font-semibold text-on-surface">Favorita Grocery v1</span>
+      </div>
+    </div>
+  </aside>
+  <div class="pl-72 app-body">
+    <header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/40 z-40 px-space-xl flex items-center justify-between">
+      <button aria-controls="navegacion" aria-expanded="false" id="menu-toggle" type="button">☰ <span>Menú</span></button>
+      <span class="text-label-md header-context">Favorita · consultas retrospectivas</span>
+      <div class="header-actions">
+        <button aria-label="Activar tema oscuro" aria-pressed="false" class="theme-toggle" id="theme-toggle" title="Activar tema oscuro" type="button">
+          <svg aria-hidden="true" class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
+          </svg>
+          <svg aria-hidden="true" class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"></path>
+          </svg>
+        </button>
+        <span class="badge header-badge">Piloto local / CPU</span>
+      </div>
+    </header>
+    <main id="contenido" class="relative min-h-screen bg-surface w-full px-space-xl py-space-xl">
+      <div class="flex flex-col gap-space-lg max-w-screen-2xl mx-auto">{% block contenido %}{% endblock %}</div>
+      <footer class="mt-10 text-body-sm text-on-surface-variant">Prototipo académico · ventas estimadas por día y familia. No es inventario ni recomendación de compra.</footer>
+    </main>
+  </div>
+</body>
+</html>

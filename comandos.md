@@ -117,3 +117,21 @@ flake8 src/
 - Ante fallo de Drive el entrenamiento se detiene conservando el ultimo checkpoint local. El notebook documenta como reintentar `sincronizar_epoca(local, remoto)` antes de perder la VM, sin entrenar. Si se perdio la VM se recupera la ultima generacion integra; el trabajo de una epoca incompleta se pierde. El montaje de Drive no garantiza una transaccion distribuida ni persistencia remota instantanea. Revisar cuota/espacio: se conservan todas las generaciones.
 - CPU es el valor inicial; se detecta CUDA y se rechaza GPU no disponible. No se supone que GPU sea mas rapida. Se muestran ejemplos, dispositivo, epoca, MAE/RMSE, mejor epoca y rutas. No se evalua test ni se ejecuta entrenamiento completo durante la implementacion.
 - Pruebas locales usan carpetas temporales que simulan Drive: `.\venv\Scripts\python.exe -m pytest -q`; luego `git diff --check` y `git status`. Dataset y runs/ siguen ignorados. Solo cargar checkpoints propios: SHA-256 detecta corrupcion, no autentica origen.
+
+
+## Evaluacion del test interno Favorita
+
+Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por RMSE de validacion:
+
+```powershell
+.\venv\Scripts\python.exe -m src.evaluate --source favorita --model_path runs/favorita_subconjunto_reanudado_4/best.pt --output-dir runs/evaluaciones/favorita_piloto_test
+```
+
+- No entrena ni reajusta transformaciones. Recupera arquitectura, filtros, columnas y preparador del checkpoint. Usa CPU, matrices CSR y lotes; recorre solo test. El constructor existente reconstruye las tres particiones en memoria, sin recorrer entrenamiento/validacion para calcular metricas.
+- Test interno: 2017-07-16 a 2017-08-15, extraido del mismo `train.csv`. NO usar `test.csv` de Kaggle. El SHA-256 del archivo debe coincidir. `--data-path <ruta/train.csv>` permite cambiar solamente la ubicacion del mismo archivo.
+- Evaluacion diaria a un paso: cada fecha usa historia observada hasta t-1, incluso dias anteriores del test. No es un pronostico de todo el mes emitido desde una unica fecha. Las promociones del dia objetivo se consideran conocidas anticipadamente.
+- MAE y RMSE se acumulan por muestra, en unidades originales; el baseline semanal se reconstruye desde el rezago escalado y usa las mismas filas. No se usa test para elegir epocas, hiperparametros ni nuevas decisiones de ajuste.
+- Se requiere formato v2 con SHA-256, periodos, versiones y preparador compatibles. Los checkpoints antiguos sin esa informacion se rechazan. La carga contiene objetos Python; solo archivos propios/confiables.
+- `--output-dir` es opcional: sin el argumento solo imprime. Si se utiliza, debe ser una carpeta NUEVA dentro de `runs/`, fuera de la corrida original. Guarda `evaluacion.json` con metricas, conteos, periodo, huellas y duracion. No sobrescribe resultados anteriores ni cambia `resumen.json` o checkpoints de entrenamiento. Para repetir, omitir salida o elegir otra carpeta.
+- El evaluador anterior se conserva: `.\venv\Scripts\python.exe -m src.evaluate --model_path models/best_model.pt` devuelve MSE de validacion sintetica; tambien admite `--source synthetic`.
+- Validacion: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check`, `git status`.

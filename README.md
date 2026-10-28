@@ -709,3 +709,20 @@ Evaluación y optimización final
 La primera etapa correspondiente al boilerplate se encuentra funcional.
 
 Actualmente el proyecto se encuentra en la fase de **definición del problema y selección del dataset real**. El siguiente objetivo será integrar datos históricos de ventas y comenzar la adaptación del pipeline existente para la predicción de demanda.
+
+## Evaluacion del test interno Favorita
+
+Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por RMSE de validacion:
+
+```powershell
+.\venv\Scripts\python.exe -m src.evaluate --source favorita --model_path runs/favorita_subconjunto_reanudado_4/best.pt --output-dir runs/evaluaciones/favorita_piloto_test
+```
+
+- No entrena ni reajusta transformaciones. Recupera arquitectura, filtros, columnas y preparador del checkpoint. Usa CPU, matrices CSR y lotes; recorre solo test. El constructor existente reconstruye las tres particiones en memoria, sin recorrer entrenamiento/validacion para calcular metricas.
+- Test interno: 2017-07-16 a 2017-08-15, extraido del mismo `train.csv`. NO usar `test.csv` de Kaggle. El SHA-256 del archivo debe coincidir. `--data-path <ruta/train.csv>` permite cambiar solamente la ubicacion del mismo archivo.
+- Evaluacion diaria a un paso: cada fecha usa historia observada hasta t-1, incluso dias anteriores del test. No es un pronostico de todo el mes emitido desde una unica fecha. Las promociones del dia objetivo se consideran conocidas anticipadamente.
+- MAE y RMSE se acumulan por muestra, en unidades originales; el baseline semanal se reconstruye desde el rezago escalado y usa las mismas filas. No se usa test para elegir epocas, hiperparametros ni nuevas decisiones de ajuste.
+- Se requiere formato v2 con SHA-256, periodos, versiones y preparador compatibles. Los checkpoints antiguos sin esa informacion se rechazan. La carga contiene objetos Python; solo archivos propios/confiables.
+- `--output-dir` es opcional: sin el argumento solo imprime. Si se utiliza, debe ser una carpeta NUEVA dentro de `runs/`, fuera de la corrida original. Guarda `evaluacion.json` con metricas, conteos, periodo, huellas y duracion. No sobrescribe resultados anteriores ni cambia `resumen.json` o checkpoints de entrenamiento. Para repetir, omitir salida o elegir otra carpeta.
+- El evaluador anterior se conserva: `.\venv\Scripts\python.exe -m src.evaluate --model_path models/best_model.pt` devuelve MSE de validacion sintetica; tambien admite `--source synthetic`.
+- Validacion: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check`, `git status`.

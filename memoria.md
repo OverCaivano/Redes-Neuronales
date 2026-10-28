@@ -14,3 +14,5 @@
 - Añadir métricas específicas y validación cruzada cuando se defina el caso de uso.
 
 - **[2026-10-14]:** Bloque 1E-C: notebook Colab para Favorita completo, entorno aislado y sincronizacion verificada por epoca a Drive; recuperacion de generaciones integras. No se ejecuto entrenamiento completo.
+
+- **[2026-10-28]:** Evaluador explicito Favorita sobre test interno, reutilizando best.pt v2 y transformaciones sin fit. Evaluador sintetico conservado. Resultados de evaluacion separados bajo runs/evaluaciones/.

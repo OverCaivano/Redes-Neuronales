@@ -2,6 +2,10 @@
 
 import argparse
 from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import torch
 import torch.nn as nn
@@ -36,12 +40,22 @@ def evaluate(model_path):
 def main():
     parser = argparse.ArgumentParser(description="Evalua un modelo entrenado")
     parser.add_argument("--model_path", default="models/best_model.pt")
+    parser.add_argument("--source", choices=("synthetic", "favorita"), default="synthetic",
+                        help="Modo explicito; synthetic conserva el evaluador anterior")
+    parser.add_argument("--data-path", help="Mismo train.csv en otra ubicacion (verificado por SHA-256)")
+    parser.add_argument("--output-dir", help="Carpeta nueva dentro de runs/ para evaluacion.json")
     args = parser.parse_args()
     if not Path(args.model_path).exists():
         raise FileNotFoundError(
             f"No existe el checkpoint {args.model_path}. Ejecuta primero train.py."
         )
-    evaluate(args.model_path)
+    if args.source == "favorita":
+        from src.evaluacion_favorita import evaluar_favorita
+        evaluar_favorita(args.model_path, data_path=args.data_path, output_dir=args.output_dir)
+    else:
+        if args.data_path or args.output_dir:
+            parser.error("--data-path y --output-dir requieren --source favorita")
+        evaluate(args.model_path)
 
 
 if __name__ == "__main__":

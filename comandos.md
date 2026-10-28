@@ -135,3 +135,18 @@ Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por 
 - `--output-dir` es opcional: sin el argumento solo imprime. Si se utiliza, debe ser una carpeta NUEVA dentro de `runs/`, fuera de la corrida original. Guarda `evaluacion.json` con metricas, conteos, periodo, huellas y duracion. No sobrescribe resultados anteriores ni cambia `resumen.json` o checkpoints de entrenamiento. Para repetir, omitir salida o elegir otra carpeta.
 - El evaluador anterior se conserva: `.\venv\Scripts\python.exe -m src.evaluate --model_path models/best_model.pt` devuelve MSE de validacion sintetica; tambien admite `--source synthetic`.
 - Validacion: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check`, `git status`.
+
+
+## Bloque B: consultas de ventas estimadas Favorita
+
+```powershell
+.\venv\Scripts\python.exe -m src.predecir_favorita --checkpoint runs/favorita_subconjunto_reanudado_4/best.pt --tienda 1 --familia BEAUTY --fecha 2017-07-16
+```
+
+- Consulta retrospectiva de una fila real, con modelo fijo. No entrena, no reajusta transformaciones, no escribe resultados ni consulta la venta real del objetivo para generar entradas. No es stock disponible ni recomendacion de compra.
+- Se exige `best.pt` propio/confiable y compatible, las categorias originales y el mismo CSV identificado por SHA-256. `--data-path <ruta/train.csv>` cambia solo su ubicacion. Familias con espacios deben ir entre comillas. No se permiten filtros/categorias ajenos al entrenamiento.
+- Debe existir la fila de la fecha consultada para obtener la promocion del dia (asumida planificada y conocida anticipadamente), y los siete dias calendario previos con ventas observadas. Si falta historia o fecha, se rechaza; no se inventan ventas ni promociones futuras.
+- `src/predecir_favorita.py` reutiliza lector, generador temporal, preparador y carga de checkpoint. Antes de generar variables selecciona solo t-7..t y oculta sales(t). Usa un marcador interno cero para cumplir el contrato del generador; NO representa ventas ni imputa huecos, no se usa como rezago y se elimina antes de transformar. Fechas posteriores no participan. Solo se densifica una fila.
+- Se muestra la salida original del MLP sin redondear a enteros ni recortar negativos. Una salida negativa se informa como limitacion del modelo. Son ventas agregadas diarias por familia/tienda.
+- Es una consulta historica con pesos ya ajustados: consultar fechas de entrenamiento no constituye un backtest fuera de muestra ni demuestra que el modelo existiera en esa fecha. No usar consultas del test para seleccionar modelos o hiperparametros.
+- No cambia el comando de evaluacion sintetica ni Favorita. Pruebas: `.\venv\Scripts\python.exe -m pytest -q`; revision: `git diff --check` y `git status`.

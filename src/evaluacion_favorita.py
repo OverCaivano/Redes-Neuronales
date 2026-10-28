@@ -75,6 +75,19 @@ def cargar_best_favorita(ruta):
     return estado
 
 
+def reconstruir_modelo_favorita(estado):
+    """Recupera pesos finitos en CPU sin optimizador; compartido con consultas."""
+    modelo = MLP(**estado["config"]["model"])
+    try:
+        modelo.load_state_dict(estado["model_state_dict"], strict=True)
+    except (RuntimeError, TypeError) as error:
+        raise ValueError("Pesos incompatibles con la arquitectura guardada") from error
+    if any(not torch.isfinite(p).all() for p in modelo.parameters()):
+        raise ValueError("Pesos no finitos")
+    modelo.eval()
+    return modelo
+
+
 def evaluar_favorita(model_path, *, data_path=None, output_dir=None):
     """Reconstruye con el preparador guardado y recorre SOLO test, en CPU.
 
@@ -100,13 +113,7 @@ def evaluar_favorita(model_path, *, data_path=None, output_dir=None):
     digest = huella_dataset(ruta_csv)
     if digest != estado["dataset_sha256"]:
         raise ValueError("Dataset incompatible: SHA-256 diferente; usar el train.csv original")
-    modelo = MLP(**config["model"])
-    try:
-        modelo.load_state_dict(estado["model_state_dict"], strict=True)
-    except (RuntimeError, TypeError) as error:
-        raise ValueError("Pesos incompatibles con la arquitectura guardada") from error
-    if any(not torch.isfinite(p).all() for p in modelo.parameters()):
-        raise ValueError("Pesos no finitos")
+    modelo = reconstruir_modelo_favorita(estado)
     preparado = construir_loaders_favorita(
         ruta_csv, tiendas=config["data"].get("tiendas"), familias=config["data"].get("familias"),
         batch_size=int(config["training"]["batch_size"]), semilla=int(config.get("seed", 42)),

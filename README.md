@@ -742,6 +742,20 @@ Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por 
 - Es una consulta historica con pesos ya ajustados: consultar fechas de entrenamiento no constituye un backtest fuera de muestra ni demuestra que el modelo existiera en esa fecha. No usar consultas del test para seleccionar modelos o hiperparametros.
 - No cambia el comando de evaluacion sintetica ni Favorita. Pruebas: `.\venv\Scripts\python.exe -m pytest -q`; revision: `git diff --check` y `git status`.
 
+## Bloque 3: backtest recursivo Favorita
+
+Ejecutar desde la raíz del repositorio, sin entrenamiento:
+
+```powershell
+.\venv\Scripts\python.exe -m src.evaluar_pronosticos_recursivos
+```
+
+- Evalua solo validacion con seis origenes moviles, siete dias por origen, cinco tiendas (una tienda central por tipo, ordenadas por `store_nbr`) y cuatro familias, para una muestra de 20 series. El test no se usa y queda reservado para una evaluacion final.
+- Reutiliza `PronosticadorFavorita` del módulo `src/pronosticar_favorita.py`, carga el checkpoint una vez y excluye las ventas posteriores al origen de las entradas. La referencia semanal es `ventas(t-7)`, disponible para los siete horizontes.
+- Las promociones se extraen de `train.csv` para los días posteriores al origen y solo se pasan como calendario; las ventas reales quedan separadas para puntuar. Se asume que esas promociones ya eran conocidas en cada origen: el CSV no indica cuándo se publicaron.
+- Guarda un informe JSON, predicciones detalladas y tablas de MAE/RMSE por horizonte y tienda/familia en una carpeta nueva con marca de tiempo bajo `runs/evaluaciones/`. No sobrescribe resultados existentes. MAE/RMSE generales agrupan todos los horizontes; por horizonte hay 120 observaciones si no se omiten ventanas.
+- Es una muestra de desarrollo, no una estimación definitiva de generalización. Deben revisarse las ventanas omitidas y no elegir modelos con el conjunto de test.
+
 
 ## Bloque C: StockPredict IA — aplicación web local
 

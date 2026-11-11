@@ -92,6 +92,104 @@ def _promociones_futuras(promociones, *, tienda, familia, fechas):
     return disponibles.to_dict()
 
 
+class PronosticadorFavorita:
+    """Carga una vez el checkpoint y permite repetir pronósticos independientes."""
+
+    def __init__(self, checkpoint):
+        self.estado = cargar_best_favorita(checkpoint)
+        self.nombres = tuple(self.estado["nombres_columnas"])
+        self.preparador = self.estado["preparador"]
+        columnas_base = tuple(COLUMNAS_NUMERICAS + VARIABLES_CICLICAS)
+        if (self.estado["config"]["data"]["source"] != "favorita"
+            or self.estado["input_dim"] != len(self.nombres)
+            or self.nombres != self.preparador.nombres_columnas
+            or self.nombres[:len(columnas_base)] != columnas_base
+            or self.estado["config"]["model"]["input_dim"] != self.estado["input_dim"]):
+            raise ValueError("Checkpoint incompatible con el preparador de entradas Favorita")
+        self.categorias = self.preparador.codificador.categorias
+        self.modelo = reconstruir_modelo_favorita(self.estado)
+
+    def pronosticar(
+        self,
+        historial,
+        promociones,
+        *,
+        tienda,
+        familia,
+        fecha_origen,
+        horizonte=7,
+    ):
+        """Predice hasta siete días con ventas conocidas y predicciones previas.
+
+        ``historial`` y ``promociones`` son DataFrames canónicos. Se ignoran
+        las ventas posteriores al origen y solo se modifica el estado temporal
+        local de esta consulta.
+        """
+        origen = validar_consulta(tienda, familia, fecha_origen)
+        if (isinstance(horizonte, bool) or not isinstance(horizonte, Integral)
+            or not 1 <= horizonte <= 7):
+            raise ValueError("horizonte debe ser un entero entre 1 y 7")
+        if tienda not in self.categorias["tienda"] or familia not in self.categorias["familia"]:
+            raise PronosticoNoDisponible(
+                "Tienda o familia no compatible con el checkpoint completo."
+            )
+
+        fechas = pd.date_range(origen + pd.Timedelta(days=1), periods=int(horizonte), freq="D")
+        ventas = _ventas_conocidas(historial, tienda=tienda, familia=familia, origen=origen)
+        cantidades = _promociones_futuras(
+            promociones, tienda=tienda, familia=familia, fechas=fechas
+        )
+        predicciones = []
+
+        for fecha in fechas:
+            anteriores = [ventas.get(fecha - pd.Timedelta(days=dia)) for dia in range(1, 8)]
+            if any(valor is None for valor in anteriores):
+                raise PronosticoNoDisponible(
+                    "La historia recursiva no contiene siete días anteriores para una entrada."
+                )
+            angulo_semana = 2 * np.pi * fecha.dayofweek / 7
+            angulo_mes = 2 * np.pi * (fecha.month - 1) / 12
+            fila = pd.DataFrame([{
+                "ventas_hace_1_dia": anteriores[0],
+                "ventas_hace_7_dias": anteriores[6],
+                "promedio_ventas_7_dias": float(np.mean(anteriores)),
+                "cantidad_en_promocion": cantidades[fecha],
+                "dia_semana_seno": np.sin(angulo_semana),
+                "dia_semana_coseno": np.cos(angulo_semana),
+                "mes_seno": np.sin(angulo_mes),
+                "mes_coseno": np.cos(angulo_mes),
+                "tienda": tienda,
+                "familia": familia,
+            }])
+            matriz = self.preparador.transformar(fila)
+            if (matriz.shape != (1, self.estado["input_dim"])
+                or self.nombres != self.preparador.nombres_columnas):
+                raise ValueError(
+                    "Dimensiones u orden de características incompatibles con el checkpoint"
+                )
+            entrada = torch.from_numpy(matriz.toarray())
+            with torch.inference_mode():
+                salida = self.modelo(entrada)
+            if salida.shape != (1, 1) or not torch.isfinite(salida).all():
+                raise ValueError("El pronóstico debe ser finito y tener forma [1, 1]")
+            estimacion = float(salida.item())
+            ventas[fecha] = estimacion
+            predicciones.append({
+                "fecha": fecha.strftime("%Y-%m-%d"),
+                "ventas_estimadas": estimacion,
+                "cantidad_en_promocion": float(cantidades[fecha]),
+            })
+
+        return {
+            "tienda": int(tienda),
+            "familia": familia,
+            "fecha_origen": origen.strftime("%Y-%m-%d"),
+            "horizonte": int(horizonte),
+            "epoca": int(self.estado["epoch"]),
+            "pronosticos": predicciones,
+        }
+
+
 def pronosticar_favorita(
     checkpoint,
     historial,
@@ -102,79 +200,9 @@ def pronosticar_favorita(
     fecha_origen,
     horizonte=7,
 ):
-    """Predice hasta siete días; solo las ventas conocidas o ya pronosticadas alimentan rezagos.
-
-    ``historial`` y ``promociones`` son DataFrames canónicos. El pronóstico
-    ignora todas las ventas posteriores al origen y modifica solo su estado
-    temporal en memoria.
-    """
-    origen = validar_consulta(tienda, familia, fecha_origen)
-    if isinstance(horizonte, bool) or not isinstance(horizonte, Integral) or not 1 <= horizonte <= 7:
-        raise ValueError("horizonte debe ser un entero entre 1 y 7")
-    estado = cargar_best_favorita(checkpoint)
-    nombres = tuple(estado["nombres_columnas"])
-    preparador = estado["preparador"]
-    columnas_base = tuple(COLUMNAS_NUMERICAS + VARIABLES_CICLICAS)
-    if (estado["config"]["data"]["source"] != "favorita"
-        or estado["input_dim"] != len(nombres)
-        or nombres != preparador.nombres_columnas
-        or nombres[:len(columnas_base)] != columnas_base
-        or estado["config"]["model"]["input_dim"] != estado["input_dim"]):
-        raise ValueError("Checkpoint incompatible con el preparador de entradas Favorita")
-
-    categorias = preparador.codificador.categorias
-    if tienda not in categorias["tienda"] or familia not in categorias["familia"]:
-        raise PronosticoNoDisponible("Tienda o familia no compatible con el checkpoint completo.")
-
-    fechas = pd.date_range(origen + pd.Timedelta(days=1), periods=int(horizonte), freq="D")
-    ventas = _ventas_conocidas(historial, tienda=tienda, familia=familia, origen=origen)
-    cantidades = _promociones_futuras(
-        promociones, tienda=tienda, familia=familia, fechas=fechas
+    """Interfaz de consulta que conserva compatibilidad con los consumidores actuales."""
+    pronosticador = PronosticadorFavorita(checkpoint)
+    return pronosticador.pronosticar(
+        historial, promociones, tienda=tienda, familia=familia,
+        fecha_origen=fecha_origen, horizonte=horizonte,
     )
-    modelo = reconstruir_modelo_favorita(estado)
-    predicciones = []
-
-    for fecha in fechas:
-        anteriores = [ventas.get(fecha - pd.Timedelta(days=dia)) for dia in range(1, 8)]
-        if any(valor is None for valor in anteriores):
-            raise PronosticoNoDisponible(
-                "La historia recursiva no contiene siete días anteriores para una entrada."
-            )
-        angulo_semana = 2 * np.pi * fecha.dayofweek / 7
-        angulo_mes = 2 * np.pi * (fecha.month - 1) / 12
-        fila = pd.DataFrame([{
-            "ventas_hace_1_dia": anteriores[0],
-            "ventas_hace_7_dias": anteriores[6],
-            "promedio_ventas_7_dias": float(np.mean(anteriores)),
-            "cantidad_en_promocion": cantidades[fecha],
-            "dia_semana_seno": np.sin(angulo_semana),
-            "dia_semana_coseno": np.cos(angulo_semana),
-            "mes_seno": np.sin(angulo_mes),
-            "mes_coseno": np.cos(angulo_mes),
-            "tienda": tienda,
-            "familia": familia,
-        }])
-        matriz = preparador.transformar(fila)
-        if matriz.shape != (1, estado["input_dim"]) or nombres != preparador.nombres_columnas:
-            raise ValueError("Dimensiones u orden de características incompatibles con el checkpoint")
-        entrada = torch.from_numpy(matriz.toarray())
-        with torch.inference_mode():
-            salida = modelo(entrada)
-        if salida.shape != (1, 1) or not torch.isfinite(salida).all():
-            raise ValueError("El pronóstico debe ser finito y tener forma [1, 1]")
-        estimacion = float(salida.item())
-        ventas[fecha] = estimacion
-        predicciones.append({
-            "fecha": fecha.strftime("%Y-%m-%d"),
-            "ventas_estimadas": estimacion,
-            "cantidad_en_promocion": float(cantidades[fecha]),
-        })
-
-    return {
-        "tienda": int(tienda),
-        "familia": familia,
-        "fecha_origen": origen.strftime("%Y-%m-%d"),
-        "horizonte": int(horizonte),
-        "epoca": int(estado["epoch"]),
-        "pronosticos": predicciones,
-    }

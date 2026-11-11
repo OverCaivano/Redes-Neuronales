@@ -152,6 +152,18 @@ Evaluar exclusivamente un `best.pt` propio y confiable, elegido previamente por 
 - No cambia el comando de evaluacion sintetica ni Favorita. Pruebas: `.\venv\Scripts\python.exe -m pytest -q`; revision: `git diff --check` y `git status`.
 
 
+## Bloque 3: backtest recursivo Favorita
+
+```powershell
+.\venv\Scripts\python.exe -m src.evaluar_pronosticos_recursivos
+```
+
+- Sin entrenamiento. Usa seis origenes de validacion, horizonte maximo de siete dias, cinco tiendas (una tienda central por tipo, ordenadas por `store_nbr`) y cuatro familias; el test se reserva para una evaluacion final.
+- Reutiliza `PronosticadorFavorita` y el checkpoint completo. Mide MAE/RMSE por horizonte, general y por tienda/familia; compara con `ventas(t-7)`.
+- Las promociones futuras se leen de `train.csv` y se asumen conocidas al origen, aunque el dataset no registra su fecha de publicacion. Las ventas futuras solo se usan como etiquetas de evaluacion, nunca como entradas.
+- Escribe JSON y CSV en una carpeta nueva con marca de tiempo dentro de `runs/evaluaciones/`; no sobrescribe resultados. Por defecto son 20 series, seis ventanas y hasta 840 pronosticos. Revisar el informe para ventanas omitidas y limitaciones de muestra.
+
+
 ## Bloque C: StockPredict IA — aplicación web local
 
 Desde la raíz del repositorio, en Windows PowerShell:

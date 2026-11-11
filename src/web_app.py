@@ -15,6 +15,7 @@ from src.datos_favorita import leer_datos_favorita
 from src.evaluacion_favorita import cargar_best_favorita
 from src.predecir_favorita import predecir_favorita, validar_consulta
 from src.preprocesamiento_temporal import generar_variables_historicas
+from src.pronosticar_favorita import leer_promociones_favorita, pronosticar_favorita
 from src.reanudacion import huella_dataset
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -41,6 +42,7 @@ class ServicioPiloto:
         }
         self.checkpoint = self.checkpoints["piloto"]
         self.csv = self.raiz / "data/raw/train.csv"
+        self.promociones = self.raiz / "data/raw/test.csv"
         self.evaluacion = self.raiz / "runs/evaluaciones/favorita_piloto_test/evaluacion.json"
         self._opciones = {}
         self._firma = {}
@@ -93,6 +95,8 @@ class ServicioPiloto:
                     "modelo": "Piloto local · MLP" if modelo == "piloto" else "Modelo completo · MLP",
                     "modelo_id": modelo, "modelos": self.modelos(),
                 }
+                if modelo == "completo":
+                    self._opciones[modelo]["fecha_max_historica"] = fecha_max
                 self._firma[modelo] = firma
             return self._opciones[modelo]
 
@@ -122,6 +126,26 @@ class ServicioPiloto:
                     ) from None
                 raise
         return {k: resultado[k] for k in ("tienda", "familia", "fecha", "ventas_estimadas", "epoca")}
+
+    def pronosticar(self, tienda, familia, fecha_origen, horizonte=7):
+        opciones = self.opciones("completo")
+        if not any(
+            s["tienda"] == tienda and s["familia"] == familia for s in opciones["series"]
+        ):
+            raise LookupError("Tienda o familia no compatible con el modelo completo.")
+        with self._lock:
+            estado = cargar_best_favorita(self.checkpoints["completo"])
+            if huella_dataset(self.csv) != estado["dataset_sha256"]:
+                raise ValueError("Dataset incompatible")
+            historial = leer_datos_favorita(
+                self.csv, tiendas=[tienda], familias=[familia]
+            )
+            promociones = leer_promociones_favorita(self.promociones)
+            return pronosticar_favorita(
+                self.checkpoints["completo"], historial, promociones,
+                tienda=tienda, familia=familia, fecha_origen=fecha_origen,
+                horizonte=horizonte,
+            )
 
     def resumen(self):
         corridas, advertencias = [], []
@@ -232,6 +256,45 @@ def crear_app(servicio=None):
         except Exception:
             app.logger.exception("Error de inferencia local")
             return jsonify(error="No se pudo generar la predicción. Revisá el checkpoint y el dataset en la consola."), 503
+
+    @app.post("/api/pronosticos")
+    def pronostico():
+        origen = request.headers.get("Origin")
+        if origen and origen != request.host_url.rstrip("/"):
+            return jsonify(error="Origen de solicitud no permitido."), 403
+        if not request.is_json:
+            return jsonify(error="Enviar JSON con tienda, familia, fecha_origen y horizonte."), 415
+        datos = request.get_json(silent=True)
+        if not isinstance(datos, dict) or set(datos) != {
+            "tienda", "familia", "fecha_origen", "horizonte"
+        }:
+            return jsonify(error="Se requieren tienda, familia, fecha_origen y horizonte."), 400
+        try:
+            validar_consulta(
+                tienda=datos["tienda"], familia=datos["familia"], fecha=datos["fecha_origen"]
+            )
+            horizonte = datos["horizonte"]
+            if isinstance(horizonte, bool) or not isinstance(horizonte, int) or not 1 <= horizonte <= 7:
+                raise ValueError("horizonte debe ser un entero entre 1 y 7")
+        except ValueError as error:
+            return jsonify(error=str(error)), 400
+        try:
+            resultado = servicio.pronosticar(
+                tienda=datos["tienda"], familia=datos["familia"],
+                fecha_origen=datos["fecha_origen"], horizonte=horizonte,
+            )
+            return jsonify(
+                **resultado,
+                modelo="Completo · best.pt",
+                aviso="Demostración con datos históricos de 2017; no es una predicción actual de 2026.",
+            )
+        except LookupError as error:
+            return jsonify(error=str(error)), 422
+        except Exception:
+            app.logger.exception("Error de pronóstico recursivo local")
+            return jsonify(
+                error="No se pudo generar el pronóstico. Revisá el checkpoint, el historial y las promociones en la consola."
+            ), 503
 
     @app.errorhandler(HTTPException)
     def error_http(error):

@@ -168,6 +168,7 @@ Abrir **http://127.0.0.1:5000**. Detener con Ctrl+C. Si el puerto está ocupado:
 - Diseños originales copiados sin alteraciones a `disenos/stitch/`: Descargas/1 → predicciones, /2 → inicio, /3 → evaluacion, /4 → acerca, /5 → historial. Cada pantalla conserva HTML y DESIGN con nombres descriptivos; `procedencia.json` registra hashes. Estas referencias contienen el contenido ficticio original; no se sirven por HTTP. Las plantillas adaptadas están en `web/templates/`.
 - La página Predicciones permite elegir el piloto (`runs/favorita_subconjunto_reanudado_4/best.pt`, 10 entradas) o el modelo completo (`runs/favorita_completa_20/best.pt`, 95 entradas); ambos usan `data/raw/train.csv`. El piloto continúa seleccionado por defecto. No hay selector de rutas ni carga de checkpoints mediante HTTP.
 - `GET /api/opciones?modelo=piloto|completo` publica solo las categorías del checkpoint y fechas/rangos históricos para la interfaz, no ventas originales ni CSV. `POST /api/predicciones` recibe `tienda`, `familia`, `fecha` y el campo opcional `modelo` (`piloto` por defecto); reutiliza `predecir_favorita`, comprueba el SHA-256 del dataset y las siete fechas previas observadas. No entrena ni usa la venta objetivo como entrada. El servidor rechaza fechas sin fila o historia suficiente; en el formulario completo los límites de fecha son un rango y la validez exacta se confirma en el servidor.
+- La seccion Pronostico futuro usa exclusivamente el modelo completo, hasta siete dias desde la ultima fecha historica. `src/pronosticar_favorita.py` recibe historia y promociones por separado, reutiliza transformaciones guardadas y realimenta solo sus predicciones. La web lee promociones de `data/raw/test.csv`; no usa ventas futuras. La API `POST /api/pronosticos` recibe `tienda`, `familia`, `fecha_origen` y `horizonte` (1-7). El ejemplo disponible es de 2017, no es una prediccion para 2026.
 - Ejemplo real del piloto: tienda 1, familia BEAUTY, fecha 2017-07-16. El botón de ejemplo solo completa el formulario; la predicción se solicita al backend. Sin resultados simulados, intervalos de confianza ni recomendaciones de compra. El ejemplo funciona también con el modelo completo cuando su checkpoint está presente.
 - Evaluación lee `runs/evaluaciones/favorita_piloto_test/evaluacion.json` y verifica que corresponda al checkpoint. Historial lee los resúmenes y métricas del piloto inicial y su continuación. Si falta un artefacto se informa; no se reemplaza por métricas inventadas. El estado de Google Drive no está verificado y sus checkpoints no se presuponen locales.
 - API de lectura pública: `GET /api/resumen`, sin rutas privadas, pesos ni configuraciones completas. Los errores HTTP no muestran trazas. Dataset y resultados continúan ignorados por Git.
@@ -181,4 +182,11 @@ Ejemplo de consulta HTTP en PowerShell con el servidor iniciado:
 ```powershell
 $cuerpo = @{ tienda = 1; familia = "BEAUTY"; fecha = "2017-07-16" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/api/predicciones -ContentType "application/json" -Body $cuerpo
+```
+
+Pronostico recursivo de siete dias:
+
+```powershell
+$cuerpo = @{ tienda = 1; familia = "BEAUTY"; fecha_origen = "2017-08-15"; horizonte = 7 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/api/pronosticos -ContentType "application/json" -Body $cuerpo
 ```

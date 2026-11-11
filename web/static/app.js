@@ -133,6 +133,110 @@ if (form) {
   });
 }
 
+const forecastForm = document.getElementById("forecast-form");
+if (forecastForm) {
+  const store = document.getElementById("forecast-store");
+  const family = document.getElementById("forecast-family");
+  const origin = document.getElementById("forecast-origin");
+  const horizon = document.getElementById("forecast-horizon");
+  const submit = document.getElementById("forecast-submit");
+  const status = document.getElementById("pronostico-estado");
+  const results = document.getElementById("forecast-results");
+  const rows = document.getElementById("forecast-rows");
+  const context = document.getElementById("forecast-context");
+  let series = [], busy = false;
+  const controls = [store, family, horizon, submit];
+  function setStatus(message, error = false) {
+    status.textContent = message;
+    status.className = error ? "notice error mt-4" : "notice mt-4";
+    status.setAttribute("role", error ? "alert" : "status");
+  }
+  function setOptions(select, values) {
+    select.replaceChildren(...values.map(value => new Option(String(value), String(value))));
+  }
+  function updateFamilies() {
+    const families = [...new Set(series.filter(item => item.tienda === Number(store.value))
+      .map(item => item.familia))];
+    setOptions(family, families);
+    if (families.includes("BEAUTY")) family.value = "BEAUTY";
+  }
+  function clearForecast() {
+    results.hidden = true;
+    rows.replaceChildren();
+    setStatus("Elegí tienda, familia y horizonte para generar el pronóstico.");
+  }
+  async function loadOptions() {
+    controls.forEach(control => { control.disabled = true; });
+    try {
+      const response = await fetch("/api/opciones?modelo=completo");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudieron cargar las opciones.");
+      series = data.series;
+      origin.value = data.fecha_max_historica;
+      setOptions(store, [...new Set(series.map(item => item.tienda))]);
+      if (series.some(item => item.tienda === 1)) store.value = "1";
+      updateFamilies();
+      controls.forEach(control => { control.disabled = false; });
+      clearForecast();
+    } catch (error) {
+      series = [];
+      setOptions(store, []);
+      setOptions(family, []);
+      controls.forEach(control => { control.disabled = true; });
+      setStatus(error.message + " Revisá los artefactos locales y recargá la página.", true);
+    }
+  }
+  store.addEventListener("change", () => { updateFamilies(); clearForecast(); });
+  family.addEventListener("change", clearForecast);
+  horizon.addEventListener("change", clearForecast);
+  loadOptions();
+  forecastForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (busy || !forecastForm.reportValidity()) return;
+    busy = true;
+    forecastForm.setAttribute("aria-busy", "true");
+    controls.forEach(control => { control.disabled = true; });
+    results.hidden = true;
+    setStatus("Verificando historia y promociones; calculando el horizonte recursivo.");
+    try {
+      const response = await fetch("/api/pronosticos", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          tienda: Number(store.value),
+          familia: family.value,
+          fecha_origen: origin.value,
+          horizonte: Number(horizon.value),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo generar el pronóstico.");
+      context.textContent = `Tienda ${data.tienda} · ${data.familia} · origen ${data.fecha_origen} · horizonte ${data.horizonte} días · ${data.modelo}, época ${data.epoca}.`;
+      rows.replaceChildren(...data.pronosticos.map(item => {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.fecha,
+          Number(item.ventas_estimadas).toLocaleString("es-AR", {minimumFractionDigits: 6, maximumFractionDigits: 6}),
+          Number(item.cantidad_en_promocion).toLocaleString("es-AR"),
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        }
+        return row;
+      }));
+      results.hidden = false;
+      setStatus(data.aviso);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      busy = false;
+      forecastForm.removeAttribute("aria-busy");
+      controls.forEach(control => { control.disabled = false; });
+    }
+  });
+}
+
 // Curva trazada exclusivamente con las filas de metricas.csv renderizadas por el servidor.
 const grafico = document.getElementById("curva-entrenamiento");
 if (grafico) {

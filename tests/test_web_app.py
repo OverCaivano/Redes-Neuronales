@@ -24,6 +24,12 @@ def servicio(checkpoint, tmp_path):
     shutil.copyfile(ruta, destino / "best.pt")
     shutil.copyfile(ruta, completo / "best.pt")
     shutil.copyfile(csv, raiz / "data/raw/train.csv")
+    promociones = ["date,store_nbr,family,onpromotion"]
+    promociones.extend(
+        f"2017-08-{dia:02d},1,BEAUTY,{cantidad}"
+        for dia, cantidad in zip(range(16, 23), (2, 1, 1, 1, 1, 1, 0))
+    )
+    (raiz / "data/raw/test.csv").write_text("\n".join(promociones) + "\n", encoding="utf-8")
     resumen = {"epocas_completadas": 2, "mejor_epoca": 2, "mejor_val_mae": 1., "mejor_val_rmse": 2.,
                "input_dim": 10, "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
                "ruta_privada": "C:/secret/modelo.pt"}
@@ -53,6 +59,9 @@ def test_navegacion(cliente, ruta):
     assert "StockPredict IA" in texto
     if ruta in ("/", "/inicio", "/predicciones"):
         assert 'id="model-select"' in texto
+    if ruta == "/predicciones":
+        assert 'id="forecast-form"' in texto
+        assert 'id="forecast-origin"' in texto
     for enlace in ("/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"):
         assert f'href="{enlace}"' in texto
     assert 'href="/static/favicon.svg"' in texto
@@ -112,6 +121,38 @@ def test_modelo_completo_rechaza_fecha_sin_historia(cliente):
     })
     assert respuesta.status_code == 422
     assert "siete días previos observados" in respuesta.json["error"]
+
+
+def test_pronostico_recursivo_completo(cliente):
+    opciones = cliente.get("/api/opciones?modelo=completo")
+    assert opciones.status_code == 200
+    assert opciones.json["fecha_max_historica"] == "2017-08-15"
+    respuesta = cliente.post("/api/pronosticos", json={
+        "tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 7,
+    })
+    assert respuesta.status_code == 200
+    assert respuesta.json["modelo"] == "Completo · best.pt"
+    assert respuesta.json["epoca"] == 2
+    assert [fila["fecha"] for fila in respuesta.json["pronosticos"]] == [
+        f"2017-08-{dia:02d}" for dia in range(16, 23)
+    ]
+    assert all(fila["ventas_estimadas"] == 1. for fila in respuesta.json["pronosticos"])
+    assert "no es una predicción actual de 2026" in respuesta.json["aviso"]
+    assert "checkpoint" not in respuesta.get_data(as_text=True)
+    assert str(cliente.application.extensions["piloto"].raiz) not in respuesta.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("datos,estado", [
+    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 0}, 400),
+    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 8}, 400),
+    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-02-31", "horizonte": 7}, 400),
+    ({"tienda": 2, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 7}, 422),
+    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-16", "horizonte": 7}, 422),
+])
+def test_validaciones_pronostico(cliente, datos, estado):
+    respuesta = cliente.post("/api/pronosticos", json=datos)
+    assert respuesta.status_code == estado
+    assert "error" in respuesta.json
 
 
 @pytest.mark.parametrize("ruta,datos", [

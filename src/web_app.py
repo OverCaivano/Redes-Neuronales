@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import math
+from datetime import date, timedelta
 from pathlib import Path
 from threading import Lock
 
@@ -34,42 +35,92 @@ class ServicioPiloto:
     """Rutas fijadas por el servidor; ninguna ruta proviene de una solicitud HTTP."""
     def __init__(self, raiz=RAIZ):
         self.raiz = Path(raiz)
-        self.checkpoint = self.raiz / "runs/favorita_subconjunto_reanudado_4/best.pt"
+        self.checkpoints = {
+            "piloto": self.raiz / "runs/favorita_subconjunto_reanudado_4/best.pt",
+            "completo": self.raiz / "runs/favorita_completa_20/best.pt",
+        }
+        self.checkpoint = self.checkpoints["piloto"]
         self.csv = self.raiz / "data/raw/train.csv"
         self.evaluacion = self.raiz / "runs/evaluaciones/favorita_piloto_test/evaluacion.json"
-        self._opciones = None
-        self._firma = None
+        self._opciones = {}
+        self._firma = {}
         self._lock = Lock()
 
-    def opciones(self):
+    def modelos(self):
+        return [
+            {"id": "piloto", "nombre": "Piloto · 10 características"},
+            {"id": "completo", "nombre": "Completo · 95 características"},
+        ]
+
+    def opciones(self, modelo="piloto"):
+        if modelo not in self.checkpoints:
+            raise ValueError("Modelo no admitido")
         with self._lock:
-            firma = tuple((p.stat().st_size, p.stat().st_mtime_ns) for p in (self.checkpoint, self.csv))
-            if self._opciones is None or self._firma != firma:
-                estado = cargar_best_favorita(self.checkpoint)
+            checkpoint = self.checkpoints[modelo]
+            firma = tuple((p.stat().st_size, p.stat().st_mtime_ns) for p in (checkpoint, self.csv))
+            if self._opciones.get(modelo) is None or self._firma.get(modelo) != firma:
+                estado = cargar_best_favorita(checkpoint)
                 if huella_dataset(self.csv) != estado["dataset_sha256"]:
                     raise ValueError("Dataset incompatible")
                 cfg = estado["config"]["data"]
-                datos = leer_datos_favorita(self.csv, tiendas=cfg.get("tiendas"), familias=cfg.get("familias"))
-                validos = generar_variables_historicas(datos).datos
-                series = [{"tienda": int(t), "familia": str(f),
-                           "fechas": grupo.fecha.dt.strftime("%Y-%m-%d").tolist()}
-                          for (t, f), grupo in validos.groupby(["tienda", "familia"], observed=True, sort=True)]
+                if modelo == "piloto":
+                    datos = leer_datos_favorita(
+                        self.csv, tiendas=cfg.get("tiendas"), familias=cfg.get("familias")
+                    )
+                    validos = generar_variables_historicas(datos).datos
+                    series = [
+                        {"tienda": int(t), "familia": str(f),
+                         "fechas": grupo.fecha.dt.strftime("%Y-%m-%d").tolist()}
+                        for (t, f), grupo in validos.groupby(
+                            ["tienda", "familia"], observed=True, sort=True
+                        )
+                    ]
+                else:
+                    categorias = estado["preparador"].codificador.categorias
+                    inicio = estado["periodos"]["entrenamiento"][0]
+                    fecha_min = (date.fromisoformat(inicio) + timedelta(days=7)).isoformat()
+                    fecha_max = estado["periodos"]["test"][1]
+                    series = [
+                        {"tienda": int(tienda), "familia": str(familia),
+                         "fecha_min": fecha_min, "fecha_max": fecha_max}
+                        for tienda in categorias["tienda"]
+                        for familia in categorias["familia"]
+                    ]
                 if not series:
                     raise ValueError("No hay consultas compatibles")
-                self._opciones = {"series": series, "epoca": estado["epoch"],
-                                  "input_dim": estado["input_dim"], "modelo": "Piloto local · MLP"}
-                self._firma = firma
-            return self._opciones
+                self._opciones[modelo] = {
+                    "series": series, "epoca": estado["epoch"], "input_dim": estado["input_dim"],
+                    "modelo": "Piloto local · MLP" if modelo == "piloto" else "Modelo completo · MLP",
+                    "modelo_id": modelo, "modelos": self.modelos(),
+                }
+                self._firma[modelo] = firma
+            return self._opciones[modelo]
 
-    def predecir(self, tienda, familia, fecha):
-        opciones = self.opciones()
-        if not any(s["tienda"] == tienda and s["familia"] == familia and fecha in s["fechas"]
-                   for s in opciones["series"]):
-            raise LookupError("La combinación o fecha no tiene historia compatible con el piloto.")
+    def predecir(self, tienda, familia, fecha, modelo="piloto"):
+        opciones = self.opciones(modelo)
+        if modelo == "piloto":
+            if not any(
+                s["tienda"] == tienda and s["familia"] == familia and fecha in s["fechas"]
+                for s in opciones["series"]
+            ):
+                raise LookupError("La combinación o fecha no tiene historia compatible con el piloto.")
+        elif not any(
+            s["tienda"] == tienda and s["familia"] == familia for s in opciones["series"]
+        ):
+            raise LookupError("Tienda o familia no compatible con el modelo completo.")
         # La función CLI/API existente vuelve a verificar huella y ejecuta un único forward.
         with self._lock:
-            resultado = predecir_favorita(self.checkpoint, tienda=tienda, familia=familia,
-                                         fecha=fecha, data_path=self.csv)
+            try:
+                resultado = predecir_favorita(
+                    self.checkpoints[modelo], tienda=tienda, familia=familia,
+                    fecha=fecha, data_path=self.csv
+                )
+            except ValueError as error:
+                if "unica fila" in str(error) or "Historia insuficiente" in str(error):
+                    raise LookupError(
+                        "La fecha no tiene una fila válida y siete días previos observados."
+                    ) from None
+                raise
         return {k: resultado[k] for k in ("tienda", "familia", "fecha", "ventas_estimadas", "epoca")}
 
     def resumen(self):
@@ -136,11 +187,15 @@ def crear_app(servicio=None):
 
     @app.get("/api/opciones")
     def opciones():
+        modelo = request.args.get("modelo", "piloto")
+        if modelo not in ("piloto", "completo"):
+            return jsonify(error="Modelo no admitido."), 400
         try:
-            return jsonify(servicio.opciones())
+            resultado = servicio.opciones(modelo)
+            return jsonify(**resultado)
         except Exception:
             app.logger.exception("No se pudo preparar el piloto local")
-            return jsonify(error="Piloto no disponible. Revisá los archivos locales y el entorno en la consola."), 503
+            return jsonify(error="Modelo no disponible. Revisá los artefactos locales y el entorno en la consola."), 503
 
     @app.get("/api/resumen")
     def resumen():
@@ -154,18 +209,26 @@ def crear_app(servicio=None):
         if not request.is_json:
             return jsonify(error="Enviar JSON con tienda, familia y fecha."), 415
         datos = request.get_json(silent=True)
-        if not isinstance(datos, dict) or set(datos) != {"tienda", "familia", "fecha"}:
-            return jsonify(error="Se requieren únicamente tienda, familia y fecha."), 400
+        if not isinstance(datos, dict) or set(datos) not in (
+            {"tienda", "familia", "fecha"}, {"tienda", "familia", "fecha", "modelo"}
+        ):
+            return jsonify(error="Se requieren tienda, familia y fecha; modelo es opcional."), 400
+        modelo = datos.get("modelo", "piloto")
+        if modelo not in ("piloto", "completo"):
+            return jsonify(error="Modelo no admitido."), 400
         try:
-            validar_consulta(**datos)
+            validar_consulta(tienda=datos["tienda"], familia=datos["familia"], fecha=datos["fecha"])
         except ValueError as error:
             return jsonify(error=str(error)), 400
         try:
-            resultado = servicio.predecir(**datos)
-            return jsonify(**resultado, modelo="Piloto local · best.pt", aviso=
+            resultado = servicio.predecir(
+                tienda=datos["tienda"], familia=datos["familia"], fecha=datos["fecha"], modelo=modelo
+            )
+            etiqueta = "Piloto local · best.pt" if modelo == "piloto" else "Completo · best.pt"
+            return jsonify(**resultado, modelo=etiqueta, aviso=
                            "Ventas estimadas por día y familia; no representan stock ni recomendaciones de compra.")
-        except LookupError:
-            return jsonify(error="Tienda, familia o fecha sin historia compatible con el piloto."), 422
+        except LookupError as error:
+            return jsonify(error=str(error)), 422
         except Exception:
             app.logger.exception("Error de inferencia local")
             return jsonify(error="No se pudo generar la predicción. Revisá el checkpoint y el dataset en la consola."), 503

@@ -13,6 +13,7 @@ if (menu && nav) {
 
 const form = document.getElementById("prediction-form");
 if (form) {
+  const modelo = document.getElementById("model-select");
   const tienda = document.getElementById("store-select");
   const familia = document.getElementById("family-select");
   const fecha = document.getElementById("date-input");
@@ -22,7 +23,8 @@ if (form) {
   const resultado = document.getElementById("resultado");
   const rango = document.getElementById("rango-fechas");
   let series = [], fechas = [], ocupado = false;
-  const controles = [tienda, familia, fecha, boton, piloto];
+  const controles = [modelo, tienda, familia, fecha, boton, piloto];
+  let serieCompleta = false;
   function mostrarEstado(texto, error = false) {
     estado.textContent = texto;
     estado.className = error ? "notice error" : "notice";
@@ -32,15 +34,25 @@ if (form) {
     select.replaceChildren(...valores.map(valor => new Option(String(valor), String(valor))));
   }
   function comprobarFecha() {
-    fecha.setCustomValidity(fechas.includes(fecha.value) ? "" : "Esta fecha no tiene los siete días previos observados. Elegí otra dentro del intervalo.");
+    const rangoCompleto = serieCompleta && fechas.length === 0
+      && fecha.value >= fecha.min && fecha.value <= fecha.max;
+    fecha.setCustomValidity(fechas.includes(fecha.value) || rangoCompleto
+      ? ""
+      : "Esta fecha no tiene los siete días previos observados. Elegí otra dentro del intervalo.");
   }
   function actualizarFecha() {
     const serie = series.find(s => s.tienda === Number(tienda.value) && s.familia === familia.value);
-    fechas = serie ? serie.fechas : [];
-    fecha.min = fechas[0] || "";
-    fecha.max = fechas[fechas.length - 1] || "";
-    if (!fechas.includes(fecha.value)) fecha.value = fechas.includes("2017-07-16") ? "2017-07-16" : (fechas[fechas.length - 1] || "");
-    rango.textContent = fechas.length ? `${fechas.length} fechas compatibles entre ${fecha.min} y ${fecha.max}. Los huecos de calendario no son válidos.` : "Sin fechas disponibles.";
+    fechas = serie && serie.fechas ? serie.fechas : [];
+    fecha.min = serie ? (serie.fecha_min || fechas[0] || "") : "";
+    fecha.max = serie ? (serie.fecha_max || fechas[fechas.length - 1] || "") : "";
+    if (!fechas.includes(fecha.value) && !(serieCompleta && fecha.value >= fecha.min && fecha.value <= fecha.max)) {
+      fecha.value = fechas.includes("2017-07-16") ? "2017-07-16" : (fechas[fechas.length - 1] || "");
+    }
+    rango.textContent = !serie
+      ? "Sin fechas disponibles."
+      : serieCompleta
+        ? `Intervalo histórico ${fecha.min} a ${fecha.max}. El servidor confirma que la fecha y los siete días previos tengan observaciones.`
+        : `${fechas.length} fechas compatibles entre ${fecha.min} y ${fecha.max}. Los huecos de calendario no son válidos.`;
     comprobarFecha();
   }
   function actualizarFamilias() {
@@ -51,24 +63,48 @@ if (form) {
     resultado.hidden = true;
     mostrarEstado("Seleccioná los parámetros y generá una predicción real.");
   }
+  async function cargarOpciones() {
+    controles.forEach(c => { c.disabled = true; });
+    mostrarEstado("Cargando opciones del modelo seleccionado.");
+    try {
+      const respuesta = await fetch(`/api/opciones?modelo=${encodeURIComponent(modelo.value)}`);
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudieron cargar las opciones.");
+      series = datos.series;
+      serieCompleta = modelo.value === "completo";
+      opciones(tienda, [...new Set(series.map(s => s.tienda))]);
+      actualizarFamilias();
+      controles.forEach(c => { c.disabled = false; });
+      limpiarResultado();
+    } catch (error) {
+      series = [];
+      fechas = [];
+      opciones(tienda, []);
+      opciones(familia, []);
+      fecha.value = "";
+      rango.textContent = "";
+      controles.forEach(c => { c.disabled = c !== modelo; });
+      mostrarEstado(error.message + " Recargá la página después de revisar el servicio.", true);
+    }
+  }
+  modelo.addEventListener("change", () => {
+    fechas = [];
+    fecha.value = "";
+    limpiarResultado();
+    cargarOpciones();
+  });
   tienda.addEventListener("change", () => { actualizarFamilias(); limpiarResultado(); });
   familia.addEventListener("change", () => { actualizarFecha(); limpiarResultado(); });
   fecha.addEventListener("input", () => { comprobarFecha(); limpiarResultado(); });
   piloto.addEventListener("click", () => {
-    const ejemplo = series.find(s => s.tienda === 1 && s.familia === "BEAUTY" && s.fechas.includes("2017-07-16"));
+    const ejemplo = series.find(s => s.tienda === 1 && s.familia === "BEAUTY"
+      && (s.fechas ? s.fechas.includes("2017-07-16")
+        : s.fecha_min <= "2017-07-16" && s.fecha_max >= "2017-07-16"));
     if (!ejemplo) { mostrarEstado("El caso de ejemplo no está disponible en este checkpoint.", true); return; }
     tienda.value = "1"; actualizarFamilias(); familia.value = "BEAUTY";
     fecha.value = "2017-07-16"; actualizarFecha(); limpiarResultado();
   });
-  fetch("/api/opciones").then(async respuesta => {
-    const datos = await respuesta.json();
-    if (!respuesta.ok) throw new Error(datos.error || "No se pudieron cargar las opciones.");
-    series = datos.series;
-    opciones(tienda, [...new Set(series.map(s => s.tienda))]);
-    actualizarFamilias();
-    controles.forEach(c => { c.disabled = false; });
-    limpiarResultado();
-  }).catch(error => mostrarEstado(error.message + " Recargá la página después de revisar el servicio.", true));
+  cargarOpciones();
   form.addEventListener("submit", async event => {
     event.preventDefault();
     comprobarFecha();
@@ -79,12 +115,14 @@ if (form) {
     mostrarEstado("Verificando historia y ejecutando el MLP local. Esperá el resultado.");
     try {
       const respuesta = await fetch("/api/predicciones", {method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({tienda: Number(tienda.value), familia: familia.value, fecha: fecha.value})});
+        body: JSON.stringify({
+          tienda: Number(tienda.value), familia: familia.value, fecha: fecha.value, modelo: modelo.value,
+        })});
       const datos = await respuesta.json();
       if (!respuesta.ok) throw new Error(datos.error || "No se pudo generar la predicción.");
       document.getElementById("ventas-estimadas").textContent = Number(datos.ventas_estimadas).toLocaleString("es-AR", {minimumFractionDigits: 6, maximumFractionDigits: 6});
       document.getElementById("resultado-contexto").textContent = `Tienda ${datos.tienda} · ${datos.familia} · ${datos.fecha}`;
-      document.getElementById("resultado-modelo").textContent = `${datos.modelo} · época ${datos.epoca}. Promoción planificada conocida anticipadamente.`;
+      document.getElementById("resultado-modelo").textContent = `${datos.modelo} · época ${datos.epoca}. Promoción del día conocida anticipadamente.`;
       resultado.hidden = false;
       mostrarEstado(datos.ventas_estimadas < 0 ? "El modelo devolvió una estimación negativa; se muestra sin recorte como limitación del MLP." : "Predicción real completada. No se ejecutó entrenamiento.", datos.ventas_estimadas < 0);
     } catch (error) { mostrarEstado(error.message, true); }

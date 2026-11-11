@@ -18,8 +18,11 @@ def servicio(checkpoint, tmp_path):
     raiz = tmp_path / "proyecto"
     destino = raiz / "runs/favorita_subconjunto_reanudado_4"
     destino.mkdir(parents=True)
+    completo = raiz / "runs/favorita_completa_20"
+    completo.mkdir(parents=True)
     (raiz / "data/raw").mkdir(parents=True)
     shutil.copyfile(ruta, destino / "best.pt")
+    shutil.copyfile(ruta, completo / "best.pt")
     shutil.copyfile(csv, raiz / "data/raw/train.csv")
     resumen = {"epocas_completadas": 2, "mejor_epoca": 2, "mejor_val_mae": 1., "mejor_val_rmse": 2.,
                "input_dim": 10, "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
@@ -48,6 +51,8 @@ def test_navegacion(cliente, ruta):
     assert respuesta.status_code == 200
     texto = respuesta.get_data(as_text=True)
     assert "StockPredict IA" in texto
+    if ruta in ("/", "/inicio", "/predicciones"):
+        assert 'id="model-select"' in texto
     for enlace in ("/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"):
         assert f'href="{enlace}"' in texto
     assert 'href="/static/favicon.svg"' in texto
@@ -81,6 +86,45 @@ def test_opciones_y_prediccion_real_sin_fit(cliente, servicio, monkeypatch):
     assert antes == (huella_dataset(servicio.csv), huella_dataset(servicio.checkpoint))
 
 
+def test_seleccion_modelo_completo_reutiliza_checkpoint_y_opciones(cliente):
+    opciones = cliente.get("/api/opciones?modelo=completo")
+    assert opciones.status_code == 200
+    assert opciones.json["modelo_id"] == "completo"
+    assert opciones.json["input_dim"] == 10
+    assert opciones.json["series"] == [{
+        "tienda": 1, "familia": "BEAUTY",
+        "fecha_min": "2013-01-08", "fecha_max": "2017-08-15",
+    }]
+    assert {modelo["id"] for modelo in opciones.json["modelos"]} == {"piloto", "completo"}
+
+    respuesta = cliente.post("/api/predicciones", json={
+        "tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16", "modelo": "completo",
+    })
+    assert respuesta.status_code == 200
+    assert respuesta.json["ventas_estimadas"] == 1.
+    assert respuesta.json["modelo"] == "Completo · best.pt"
+    assert "checkpoint" not in respuesta.json
+
+
+def test_modelo_completo_rechaza_fecha_sin_historia(cliente):
+    respuesta = cliente.post("/api/predicciones", json={
+        "tienda": 1, "familia": "BEAUTY", "fecha": "2017-06-01", "modelo": "completo",
+    })
+    assert respuesta.status_code == 422
+    assert "siete días previos observados" in respuesta.json["error"]
+
+
+@pytest.mark.parametrize("ruta,datos", [
+    ("/api/opciones?modelo=desconocido", None),
+    ("/api/predicciones", {"tienda": 1, "familia": "BEAUTY",
+                           "fecha": "2017-07-16", "modelo": "desconocido"}),
+])
+def test_modelo_no_admitido(cliente, ruta, datos):
+    respuesta = cliente.get(ruta) if datos is None else cliente.post(ruta, json=datos)
+    assert respuesta.status_code == 400
+    assert "error" in respuesta.json
+
+
 @pytest.mark.parametrize("datos,estado", [
     ({}, 400), ([], 400), ({"tienda": 1}, 400),
     ({"tienda": True, "familia": "BEAUTY", "fecha": "2017-07-16"}, 400),
@@ -107,7 +151,11 @@ def test_json_origen_y_limites(cliente):
     assert cliente.get("/api/resumen", headers={"Host": "externo.example"}).status_code == 400
 
 
-@pytest.mark.parametrize("ruta", ["/data/raw/train.csv", "/runs/favorita_subconjunto_reanudado_4/best.pt", "/static/../../data/raw/train.csv", "/disenos/stitch/inicio.html", "/desconocida"])
+@pytest.mark.parametrize("ruta", [
+    "/data/raw/train.csv", "/runs/favorita_subconjunto_reanudado_4/best.pt",
+    "/runs/favorita_completa_20/best.pt", "/static/../../data/raw/train.csv",
+    "/disenos/stitch/inicio.html", "/desconocida",
+])
 def test_no_expone_archivos(cliente, ruta):
     assert cliente.get(ruta).status_code == 404
 

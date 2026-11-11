@@ -64,6 +64,14 @@ class CodificadorCategorias:
         """Tupla inmutable con el orden de las columnas de salida."""
         return tuple(self._codificador.get_feature_names_out(COLUMNAS_CATEGORICAS))
 
+    @property
+    def categorias(self):
+        """Categorías ajustadas, en el orden aprendido por el codificador."""
+        return {
+            columna: tuple(valores.tolist())
+            for columna, valores in zip(COLUMNAS_CATEGORICAS, self._codificador.categories_)
+        }
+
     def transformar(self, datos):
         """Devuelve CSR, sin ajuste ni conversion a matriz densa.
 

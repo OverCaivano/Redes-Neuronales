@@ -27,7 +27,7 @@
         </div>
       </div>
       <div class="px-space-md py-space-xs">
-        <div class="px-space-sm pb-space-xs font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Navegación Experimental</div>
+        <div class="px-space-sm pb-space-xs font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Navegación</div>
         <nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg shadow-sm">
           {% for clave, nombre in paginas.items() %}
           <a aria-current="{{ 'page' if pagina == clave else 'false' }}" class="nav-link {% if pagina == clave %}activo{% endif %}" href="/{{ clave }}">
@@ -43,7 +43,7 @@
         <span class="font-label-sm text-label-sm text-on-surface-variant">Núcleo Predictivo</span>
         <div class="flex items-center gap-1.5">
           <span class="relative flex h-2 w-2"><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span>
-          <span class="font-label-sm text-label-sm text-secondary font-medium">Piloto local</span>
+          <span class="font-label-sm text-label-sm text-secondary font-medium">Piloto + completo</span>
         </div>
       </div>
       <div class="text-body-sm font-body-sm text-on-surface mb-1 flex items-center gap-1.5"><span class="text-primary">◇</span><span>PyTorch / MLP</span></div>
@@ -56,7 +56,7 @@
   <div class="pl-72 app-body">
     <header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/40 z-40 px-space-xl flex items-center justify-between">
       <button aria-controls="navegacion" aria-expanded="false" id="menu-toggle" type="button">☰ <span>Menú</span></button>
-      <span class="text-label-md header-context">Favorita · consultas retrospectivas</span>
+      <span class="text-label-md header-context">Favorita · histórico y pronósticos (2017)</span>
       <div class="header-actions">
         <button aria-label="Activar tema oscuro" aria-pressed="false" class="theme-toggle" id="theme-toggle" title="Activar tema oscuro" type="button">
           <svg aria-hidden="true" class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -67,7 +67,7 @@
             <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"></path>
           </svg>
         </button>
-        <span class="badge header-badge">Piloto local / CPU</span>
+        <span class="badge header-badge">Modelos locales / CPU</span>
       </div>
     </header>
     <main id="contenido" class="relative min-h-screen bg-surface w-full px-space-xl py-space-xl">

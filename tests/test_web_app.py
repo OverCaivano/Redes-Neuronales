@@ -59,9 +59,20 @@ def test_navegacion(cliente, ruta):
     assert "StockPredict IA" in texto
     if ruta in ("/", "/inicio", "/predicciones"):
         assert 'id="model-select"' in texto
+    if ruta in ("/", "/inicio"):
+        assert "Piloto y completo" in texto
+        assert "Modelo completo disponible localmente" in texto
     if ruta == "/predicciones":
         assert 'id="forecast-form"' in texto
         assert 'id="forecast-origin"' in texto
+        assert "Piloto · 13 características" in texto
+        assert "Completo · 95 características" in texto
+    if ruta == "/evaluacion":
+        assert "evaluación diaria a un paso" in texto.lower()
+        assert "backtest recursivo" in texto.lower()
+    if ruta == "/historial":
+        assert "Modelo completo disponible localmente" in texto
+        assert "Modelo completo / Drive" not in texto
     for enlace in ("/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"):
         assert f'href="{enlace}"' in texto
     assert 'href="/static/favicon.svg"' in texto
@@ -104,7 +115,10 @@ def test_seleccion_modelo_completo_reutiliza_checkpoint_y_opciones(cliente):
         "tienda": 1, "familia": "BEAUTY",
         "fecha_min": "2013-01-08", "fecha_max": "2017-08-15",
     }]
-    assert {modelo["id"] for modelo in opciones.json["modelos"]} == {"piloto", "completo"}
+    assert opciones.json["modelos"] == [
+        {"id": "piloto", "nombre": "Piloto · 13 características"},
+        {"id": "completo", "nombre": "Completo · 95 características"},
+    ]
 
     respuesta = cliente.post("/api/predicciones", json={
         "tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16", "modelo": "completo",

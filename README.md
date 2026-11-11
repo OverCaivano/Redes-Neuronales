@@ -1,20 +1,18 @@
 # 🧠 Sistema Inteligente de Predicción de Demanda y Gestión de Stock mediante Redes Neuronales
 
-Este repositorio contiene el desarrollo de un sistema inteligente basado en redes neuronales orientado a la **predicción de demanda de productos y asistencia en la gestión de stock**.
+Este repositorio contiene un prototipo académico de predicción de ventas con Favorita, desarrollado con Python, PyTorch y Flask. Incluye modelos piloto y completo, consultas históricas y un pronóstico recursivo de hasta siete días para una demostración con datos de 2017.
 
-El proyecto parte de un boilerplate funcional para entrenamiento y evaluación de modelos de redes neuronales desarrollado en **Python y PyTorch**, incorporando además testing automatizado, configuración reproducible y documentación destinada a la utilización de agentes de Inteligencia Artificial durante el desarrollo.
-
-Actualmente el proyecto se encuentra en desarrollo. El boilerplate y el pipeline inicial están implementados, mientras que las siguientes etapas estarán orientadas a integrar datos reales de ventas y adaptar la red neuronal al problema específico de predicción de demanda.
+La aplicación estima ventas por tienda y familia; no conoce el inventario actual y no genera recomendaciones de reposición. El soporte de datos sintéticos sigue disponible para las pruebas del pipeline original.
 
 ---
 
 ## 🎯 Objetivo del proyecto
 
-El objetivo principal es:
+El objetivo de largo plazo es:
 
 > **Desarrollar una red neuronal capaz de predecir la demanda futura de productos utilizando información histórica de ventas y variables temporales, con el objetivo de generar recomendaciones de reposición de stock.**
 
-El sistema busca servir como herramienta de asistencia para supermercados, comercios y otros negocios que necesiten administrar inventarios.
+La aplicación actual todavía no sirve como herramienta de gestión de inventario: solo estima ventas a partir del historial disponible.
 
 A partir del análisis de datos históricos, la red neuronal buscará aprender patrones relacionados con:
 
@@ -29,7 +27,7 @@ A partir del análisis de datos históricos, la red neuronal buscará aprender p
 * stock disponible;
 * tendencias históricas de demanda.
 
-La disponibilidad definitiva de estas variables dependerá del dataset seleccionado.
+El modelo Favorita actual utiliza rezagos y promedio de ventas, promociones, variables temporales cíclicas y codificaciones de tienda/familia. El resto de las variables de esta lista es trabajo futuro.
 
 ---
 
@@ -45,22 +43,9 @@ Cuando la demanda supera las unidades disponibles, el comercio puede perder vent
 
 Comprar cantidades muy superiores a la demanda genera costos innecesarios de almacenamiento y puede producir pérdidas, especialmente en productos perecederos.
 
-El sistema buscará anticipar estas situaciones mediante predicciones de demanda.
+La estimación de ventas puede ser un insumo de ese análisis, pero el prototipo no integra existencias ni anticipa faltantes.
 
-Por ejemplo:
-
-```text
-Producto: Gaseosa 2.25 L
-
-Stock actual:
-35 unidades
-
-Demanda estimada próximos 7 días:
-83 unidades
-
-Recomendación:
-Reponer aproximadamente 48 unidades.
-```
+Para recomendar una reposición harían falta, entre otros datos, inventario y pedidos actuales, que no forman parte del modelo ni de la aplicación.
 
 ---
 
@@ -96,25 +81,11 @@ Recomendación de reposición
 
 ### Estado actual
 
-Actualmente el boilerplate utiliza **datos sintéticos** para garantizar que el pipeline de entrenamiento y evaluación pueda ejecutarse independientemente de un dataset externo.
+La aplicación utiliza los archivos locales de Corporación Favorita: `data/raw/train.csv` para el historial de ventas y `data/raw/test.csv` únicamente como calendario de promociones futuras de la demostración. Las pruebas del pipeline original también conservan datos sintéticos.
 
-También existe soporte inicial para cargar información desde archivos CSV.
+Los datos disponibles terminan en 2017. La demostración no es un pronóstico actual de 2026 y no se puede adaptar a esa fecha sin ventas recientes y promociones correspondientes.
 
-### Próxima etapa
-
-Se seleccionará un **dataset real de ventas minoristas** adecuado para entrenar la red neuronal.
-
-Se priorizarán datasets que incluyan:
-
-* fecha;
-* producto;
-* cantidad vendida;
-* historial de ventas;
-* precio;
-* promociones;
-* feriados u otras variables temporales.
-
-Los datos serán posteriormente limpiados, transformados y separados en conjuntos de:
+Las particiones de Favorita se separan cronológicamente por fecha objetivo:
 
 ```text
 TRAIN
@@ -124,7 +95,7 @@ VALIDATION
 TEST
 ```
 
-Es importante mantener la separación temporal de los datos para evitar utilizar información futura durante el entrenamiento.
+El modelo completo no recibe ventas objetivo ni ventas futuras como características.
 
 ---
 
@@ -132,7 +103,9 @@ Es importante mantener la separación temporal de los datos para evitar utilizar
 
 ### Variables de entrada
 
-Inicialmente se consideran:
+El modelo completo usa 95 entradas: cuatro variables de ventas/promoción, cuatro variables temporales cíclicas y codificaciones one-hot para tiendas y familias. No incluye stock, precio ni feriados.
+
+Variables que podrían evaluarse más adelante, pero no son entradas del checkpoint actual:
 
 * producto o categoría;
 * ventas históricas;
@@ -147,25 +120,21 @@ Inicialmente se consideran:
 * stock disponible;
 * comportamiento reciente de ventas.
 
-La selección definitiva se realizará después de analizar el dataset.
-
 ### Variable objetivo
 
-La variable principal a predecir será:
+La aplicación estima:
 
-> **Cantidad de unidades demandadas o vendidas durante un período futuro determinado.**
+> **Ventas diarias registradas por tienda y familia.**
 
-Inicialmente se evaluarán predicciones diarias y/o para períodos cortos de varios días.
+Las consultas históricas estiman un día; el pronóstico recursivo completo genera hasta siete días consecutivos.
 
 ---
 
 ## 🏗️ Arquitectura de la red neuronal
 
-### Modelo base actual
+### Modelos actuales
 
-El boilerplate implementa actualmente una **red neuronal multicapa (MLP)** utilizando PyTorch.
-
-Esta arquitectura permite comprobar el funcionamiento completo del pipeline:
+El proyecto conserva el MLP base para pruebas y cuenta con dos checkpoints Favorita locales: el piloto, de 13 entradas, y el completo, de 95 entradas. La aplicación usa los pesos existentes; no entrena al consultar.
 
 ```text
 Datos
@@ -199,11 +168,11 @@ Capa de salida
 Predicción numérica
 ```
 
-La arquitectura actual funciona como **modelo base** y será adaptada al dataset real.
+Ambos checkpoints son MLP; el completo se usa también en el pronóstico recursivo de hasta siete días.
 
 ### Arquitectura temporal prevista
 
-Debido a que las ventas poseen dependencia temporal, posteriormente se evaluará implementar una red:
+Como posible trabajo futuro, se podría evaluar una red:
 
 **LSTM — Long Short-Term Memory**
 
@@ -265,7 +234,7 @@ Guardado del mejor modelo
 Evaluación final
 ```
 
-El mejor modelo obtenido durante el entrenamiento puede almacenarse en:
+El pipeline base puede almacenar el mejor modelo en:
 
 ```text
 models/best_model.pt
@@ -277,14 +246,14 @@ models/best_model.pt
 
 Debido a que el problema consiste principalmente en predecir cantidades numéricas, se utilizarán métricas correspondientes a problemas de regresión.
 
-Entre las métricas previstas:
+Para regresión se utilizan métricas como:
 
 * **MAE** — Mean Absolute Error.
 * **MSE** — Mean Squared Error.
 * **RMSE** — Root Mean Squared Error.
 * **R²** — Coeficiente de determinación.
 
-Estas métricas permitirán comparar las predicciones de la red neuronal con los valores reales.
+Las métricas disponibles incluyen MAE y RMSE. La página Evaluación muestra la evaluación diaria a un paso del piloto; el backtest recursivo del modelo completo es una evaluación separada y limitada a una muestra de validación.
 
 Si los resultados obtenidos no son satisfactorios, se podrán modificar:
 
@@ -300,27 +269,9 @@ Posteriormente se realizará un nuevo entrenamiento y se compararán los resulta
 
 ---
 
-## 📦 Sistema de recomendaciones de stock
+## 📦 Recomendaciones de stock (no implementadas)
 
-Las predicciones generadas por la red neuronal serán utilizadas posteriormente por un módulo de recomendaciones.
-
-Ejemplo:
-
-```text
-Demanda estimada:
-100 unidades
-
-Stock disponible:
-60 unidades
-
-Diferencia:
-40 unidades
-
-Recomendación:
-Reponer aproximadamente 40 unidades.
-```
-
-De esta manera, la predicción numérica se transforma en información útil para la toma de decisiones.
+La aplicación no dispone de datos de inventario ni calcula cantidades para reponer. Combinar ventas estimadas con existencias, pedidos y plazos de entrega queda fuera del alcance actual.
 
 ---
 
@@ -363,11 +314,11 @@ La estructura definitiva será diseñada durante la implementación.
 
 ---
 
-## 🔄 Feedback Loop
+## 🔄 Feedback Loop (trabajo futuro)
 
 Se contempla implementar un mecanismo de feedback que permita comparar las predicciones realizadas por la red con los resultados observados posteriormente.
 
-Ejemplo:
+Ejemplo hipotético con valores ilustrativos, no corresponde a una salida del modelo:
 
 ```text
 Predicción:
@@ -523,26 +474,19 @@ Durante el desarrollo se ampliarán las pruebas para cubrir:
 
 ```text
 .
-├── models/               # Pesos y modelos entrenados (.pt, .h5, .onnx)
-├── data/                 # Datasets de entrenamiento, validación y prueba
-│   └── raw/              # Dataset original sin modificar
-├── configs/              # Configuraciones YAML del pipeline
-├── notebooks/            # Experimentos y Google Colab
-├── src/                  # Código fuente principal
-│   ├── data_loader.py    # Carga de datos sintéticos o CSV
-│   ├── evaluate.py       # Evaluación de checkpoints
-│   ├── models/           # Arquitecturas reutilizables
-│   └── train.py          # Entrenamiento
-├── tests/                # Pruebas automatizadas
-├── AGENT.md              # Contexto e instrucciones del agente IA
-├── memoria.md            # Memoria persistente del proyecto
-├── comandos.md           # Registro de comandos
-├── Skill.md              # Habilidades del agente
-├── requirements.txt      # Dependencias de Python
-└── README.md             # Documentación principal
+├── configs/                       # Configuraciones Favorita y pipeline base
+├── data/raw/                      # CSV locales originales, no servidos por Flask
+├── runs/                           # Checkpoints y resultados locales
+├── src/web_app.py                 # Aplicación y API Flask
+├── src/predecir_favorita.py       # Predicción histórica
+├── src/pronosticar_favorita.py    # Pronóstico recursivo
+├── web/templates/                 # Cinco páginas Jinja
+├── web/static/                    # CSS y JavaScript locales
+├── disenos/stitch/                # Diseños originales de referencia
+├── tests/                          # Pruebas automatizadas
+├── README.md
+└── comandos.md
 ```
-
-La estructura será ampliada progresivamente a medida que se incorporen la base de datos, el dataset definitivo y nuevos componentes.
 
 ---
 
@@ -555,37 +499,23 @@ La estructura será ampliada progresivamente a medida que se incorporen la base 
 
 ---
 
-## 🚀 Inicio rápido
+## 🚀 Inicio rápido: demostración local (Windows PowerShell)
 
-Instalar las dependencias:
-
-```bash
-pip install -r requirements.txt
+```powershell
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt
+.\venv\Scripts\python.exe -m src.web_app
 ```
 
-Ejecutar entrenamiento:
+Abrí **http://127.0.0.1:5000**. En **Predicciones**, generá una consulta con el piloto y luego con el modelo completo; en el formulario recursivo usá el origen 2017-08-15 y horizonte de siete días. El pronóstico es una demostración histórica de 2017, no de 2026. Detené Flask con Ctrl+C.
 
-```bash
-python src/train.py --config configs/default.yaml
-```
-
-Evaluar un modelo entrenado:
-
-```bash
-python src/evaluate.py --model_path models/best_model.pt
-```
-
-Ejecutar los tests:
-
-```bash
-python -m pytest
-```
+El pipeline sintético original sigue disponible con `.\venv\Scripts\python.exe src\train.py --config configs\default.yaml`; ese comando no es necesario para demostrar la aplicación.
 
 ---
 
 ## 📄 Configuración de datos
 
-Actualmente la configuración utiliza datos sintéticos para permitir que el pipeline funcione desde el primer día.
+El pipeline genérico conserva una configuración sintética para pruebas. La integración Favorita utiliza módulos y configuraciones propios.
 
 Para utilizar un archivo CSV:
 
@@ -604,84 +534,28 @@ data.target_column
 input_dim
 ```
 
-Esta funcionalidad será adaptada al dataset real seleccionado para predicción de demanda.
+La configuración anterior corresponde al pipeline genérico; la predicción Favorita usa `configs/favorita.yaml` y `configs/favorita_completa.yaml`.
 
 ---
 
-## 📌 Estado actual del proyecto
+## 📌 Estado actual y trabajo futuro
 
-### ✅ Completado
+### Implementado
 
-* Boilerplate inicial.
-* Estructura organizada del repositorio.
-* Pipeline base de entrenamiento.
-* Modelo MLP inicial.
-* Datos sintéticos para pruebas.
-* Soporte inicial para CSV.
-* Configuración mediante YAML.
-* Guardado de checkpoints.
-* Tests iniciales.
-* Integración inicial para agentes IA.
-* Definición del problema.
-* Definición del objetivo de la red neuronal.
-* Diseño conceptual de la solución.
+* Lectura y preparación temporal del dataset Favorita, con separación cronológica.
+* Checkpoint piloto de 13 entradas y checkpoint completo de 95 entradas.
+* Evaluación diaria a un paso del piloto y backtest recursivo de siete días en una muestra de validación.
+* Aplicación Flask local con cinco páginas, temas claro/oscuro, consultas históricas y pronóstico recursivo con el modelo completo.
+* Suite automatizada del pipeline y la aplicación.
 
-### 🚧 En desarrollo
+### Pendiente
 
-* Selección del dataset real.
-* Análisis exploratorio de datos.
-* Definición definitiva de variables.
-* Adaptación del DataLoader.
-* Adaptación del modelo MLP.
-* Implementación de métricas.
-* Base de datos.
-* Sistema de recomendaciones.
-* Feedback loop.
-* Notebook para Google Colab.
-* Actualización de documentación del agente.
+* Datos recientes y calendario de promociones actualizados para pronosticar años como 2026.
+* Datos de inventario, pedidos y plazos; las recomendaciones de reposición no están implementadas.
+* Evaluación recursiva más amplia e independiente en el test reservado.
+* Incorporación y evaluación de variables externas, base de datos, feedback y otras arquitecturas.
 
-### 🔮 Evolución prevista
-
-* Arquitectura LSTM.
-* Comparación entre modelos.
-* Interfaz conversacional.
-* Visualización de predicciones.
-* Optimización del modelo.
-* Automatización parcial del reentrenamiento.
-
----
-
-## 🗺️ Roadmap
-
-```text
-Boilerplate                         ✅
-        ↓
-Definición del problema             ✅
-        ↓
-Selección del dataset               🚧
-        ↓
-Preprocesamiento
-        ↓
-Modelo base MLP
-        ↓
-Entrenamiento
-        ↓
-Evaluación
-        ↓
-Base de datos
-        ↓
-Predicción de demanda
-        ↓
-Recomendaciones de stock
-        ↓
-Feedback loop
-        ↓
-Modelo temporal LSTM
-        ↓
-Interfaz conversacional
-        ↓
-Evaluación y optimización final
-```
+El backtest disponible es un diagnóstico de desarrollo, no demuestra precisión generalizable. Ver Bloque 3 para su alcance y supuestos.
 
 ---
 
@@ -695,20 +569,16 @@ Evaluación y optimización final
 * **pytest**
 * **Git / GitHub**
 
-### Tecnologías previstas
+### Tecnologías aún no integradas a la aplicación
 
 * **SQLite**
-* **Google Colab**
+* **Google Colab** (hay notebooks de entrenamiento, pero la aplicación no depende de Drive)
 
 ---
 
 ## 📚 Estado del desarrollo
 
-**Proyecto en desarrollo activo.**
-
-La primera etapa correspondiente al boilerplate se encuentra funcional.
-
-Actualmente el proyecto se encuentra en la fase de **definición del problema y selección del dataset real**. El siguiente objetivo será integrar datos históricos de ventas y comenzar la adaptación del pipeline existente para la predicción de demanda.
+**Prototipo local funcional para demostración con datos históricos de 2017.** La aplicación no debe presentarse como una herramienta de reposición ni como un pronóstico actual de 2026.
 
 ## Evaluacion del test interno Favorita
 
@@ -755,6 +625,7 @@ Ejecutar desde la raíz del repositorio, sin entrenamiento:
 - Las promociones se extraen de `train.csv` para los días posteriores al origen y solo se pasan como calendario; las ventas reales quedan separadas para puntuar. Se asume que esas promociones ya eran conocidas en cada origen: el CSV no indica cuándo se publicaron.
 - Guarda un informe JSON, predicciones detalladas y tablas de MAE/RMSE por horizonte y tienda/familia en una carpeta nueva con marca de tiempo bajo `runs/evaluaciones/`. No sobrescribe resultados existentes. MAE/RMSE generales agrupan todos los horizontes; por horizonte hay 120 observaciones si no se omiten ventanas.
 - Es una muestra de desarrollo, no una estimación definitiva de generalización. Deben revisarse las ventanas omitidas y no elegir modelos con el conjunto de test.
+- En la ejecución de referencia (840 pronósticos), el modelo obtuvo MAE 301,54 y RMSE 681,90 frente a MAE 288,23 y RMSE 750,25 de la referencia semanal: mejora el RMSE y empeora el MAE. El resultado es mixto y limitado a esa muestra.
 
 
 ## Bloque C: StockPredict IA — aplicación web local
@@ -769,17 +640,19 @@ Desde la raíz del repositorio, en Windows PowerShell:
 
 Abrir **http://127.0.0.1:5000**. Detener con Ctrl+C. Si el puerto está ocupado: `.\venv\Scripts\python.exe -m src.web_app --port 5001`.
 
+Para demostrar: en **Predicciones**, usar «Usar caso del piloto» y generar la consulta; repetir seleccionando **Completo**. En la misma página, generar el pronóstico de siete días con origen 2017-08-15. **Evaluación** distingue la métrica diaria del backtest recursivo; **Historial** muestra las corridas del piloto.
+
 - Cinco páginas: Inicio, Predicciones, Evaluación, Historial y Acerca. HTML adaptado de Stitch mediante plantillas Jinja compartidas; JavaScript nativo. Flask escucha únicamente en localhost, sin depurador. Es un servidor para uso local, no un despliegue público.
 - Diseños originales copiados sin alteraciones a `disenos/stitch/`: Descargas/1 → predicciones, /2 → inicio, /3 → evaluacion, /4 → acerca, /5 → historial. Cada pantalla conserva HTML y DESIGN con nombres descriptivos; `procedencia.json` registra hashes. Estas referencias contienen el contenido ficticio original; no se sirven por HTTP. Las plantillas adaptadas están en `web/templates/`.
-- La página Predicciones permite elegir el piloto (`runs/favorita_subconjunto_reanudado_4/best.pt`, 10 entradas) o el modelo completo (`runs/favorita_completa_20/best.pt`, 95 entradas); ambos usan `data/raw/train.csv`. El piloto continúa seleccionado por defecto. No hay selector de rutas ni carga de checkpoints mediante HTTP.
+- La página Predicciones permite elegir el piloto (`runs/favorita_subconjunto_reanudado_4/best.pt`, 13 entradas) o el modelo completo (`runs/favorita_completa_20/best.pt`, 95 entradas); ambos usan `data/raw/train.csv`. El piloto continúa seleccionado por defecto. No hay selector de rutas ni carga de checkpoints mediante HTTP.
 - `GET /api/opciones?modelo=piloto|completo` publica solo las categorías del checkpoint y fechas/rangos históricos para la interfaz, no ventas originales ni CSV. `POST /api/predicciones` recibe `tienda`, `familia`, `fecha` y el campo opcional `modelo` (`piloto` por defecto); reutiliza `predecir_favorita`, comprueba el SHA-256 del dataset y las siete fechas previas observadas. No entrena ni usa la venta objetivo como entrada. El servidor rechaza fechas sin fila o historia suficiente; en el formulario completo los límites de fecha son un rango y la validez exacta se confirma en el servidor.
 - La sección **Pronóstico futuro** usa exclusivamente el modelo completo, hasta siete días desde la última fecha histórica disponible. `src/pronosticar_favorita.py` acepta historia y promociones como DataFrames separados, usa el preparador guardado sin reajustarlo y alimenta los rezagos futuros solo con sus propias predicciones. La demostración web toma promociones de `data/raw/test.csv`, que no contiene ventas reales; se rechazan huecos de historia o promociones. `POST /api/pronosticos` recibe `tienda`, `familia`, `fecha_origen` y `horizonte` (1–7). Los datos actuales de esta demostración son de 2017, no un pronóstico para 2026.
 - Ejemplo real del piloto: tienda 1, familia BEAUTY, fecha 2017-07-16. El botón de ejemplo solo completa el formulario; la predicción se solicita al backend. Sin resultados simulados, intervalos de confianza ni recomendaciones de compra. El ejemplo funciona también con el modelo completo cuando su checkpoint está presente.
-- Evaluación lee `runs/evaluaciones/favorita_piloto_test/evaluacion.json` y verifica que corresponda al checkpoint. Historial lee los resúmenes y métricas del piloto inicial y su continuación. Si falta un artefacto se informa; no se reemplaza por métricas inventadas. El estado de Google Drive no está verificado y sus checkpoints no se presuponen locales.
+- Evaluación lee `runs/evaluaciones/favorita_piloto_test/evaluacion.json` y verifica que corresponda al checkpoint. Historial lee los resúmenes y métricas del piloto inicial y su continuación. Si falta un artefacto se informa; no se reemplaza por métricas inventadas. La aplicación no consulta Drive y usa checkpoints locales.
 - API de lectura pública: `GET /api/resumen`, sin rutas privadas, pesos ni configuraciones completas. Los errores HTTP no muestran trazas. Dataset y resultados continúan ignorados por Git.
 - Los estilos compilados están incluidos en `web/static/estilos.css`: no se necesita Node para iniciar. Fuentes Google opcionales; sin Internet se usan fuentes del sistema. No se utiliza el script CDN de Tailwind en la aplicación.
 - El selector claro/oscuro está disponible en las cinco pantallas. La preferencia `stockpredict-theme` se conserva en `localStorage`; sin preferencia usa `prefers-color-scheme`. El script `web/static/tema.js` aplica el tema antes de cargar estilos.
-- Solo para regenerar la adaptación de diseño: instalar `beautifulsoup4==4.15.0`, ejecutar `.\venv\Scripts\python.exe web/adaptar_stitch.py`, y luego `npx.cmd --yes tailwindcss@3.4.17 -c web/tailwind.config.cjs -i web/static/base.css -o web/static/estilos.css --minify`. El generador sobrescribe las plantillas adaptadas; editar el generador al cambiar su contenido. Node solo se usa en este paso de desarrollo.
+- El adaptador `web/adaptar_stitch.py` es anterior a las integraciones actuales de selección de modelos, tema y pronóstico. No lo ejecutes para regenerar plantillas en esta versión: las sobrescribiría y perderías esas integraciones. Los estilos ya están compilados; no se necesita Node para iniciar.
 - Pruebas: `.\venv\Scripts\python.exe -m pytest -q`, `git diff --check`, `git status`. Las pruebas API usan checkpoints pequeños en carpetas temporales.
 
 Ejemplo de consulta HTTP en PowerShell con el servidor iniciado:

@@ -20,3 +20,5 @@
 - **[2026-10-28]:** Bloque B: consultas CLI de ventas diarias Favorita por tienda/familia/fecha, con checkpoint fijo y siete dias previos observados. No usa la venta objetivo, no reajusta ni entrena.
 
 - **[2026-10-28]:** Bloque C: StockPredict IA local con Flask, plantillas adaptadas de los cinco HTML de Stitch y API que reutiliza las predicciones Favorita. Métricas e historial leídos de artefactos locales; sin acceso ni suposiciones sobre Drive.
+
+- **[2026-11-11]:** Revisión para la demostración: se corrigieron etiquetas de modelos, alcance de métricas de un paso frente al backtest recursivo, referencias desactualizadas a Drive y documentación inicial del boilerplate. Verificada la web local en escritorio y móvil; sin cambios a datasets ni checkpoints.

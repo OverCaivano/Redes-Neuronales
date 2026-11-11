@@ -50,7 +50,7 @@ class ServicioPiloto:
 
     def modelos(self):
         return [
-            {"id": "piloto", "nombre": "Piloto · 10 características"},
+            {"id": "piloto", "nombre": "Piloto · 13 características"},
             {"id": "completo", "nombre": "Completo · 95 características"},
         ]
 

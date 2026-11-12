@@ -1,4 +1,5 @@
 "use strict";
+const presentacion = window.StockPredictPresentacion;
 const menu = document.getElementById("menu-toggle");
 const nav = document.getElementById("navegacion");
 if (menu && nav) {
@@ -30,8 +31,8 @@ if (form) {
     estado.className = error ? "notice error" : "notice";
     estado.setAttribute("role", error ? "alert" : "status");
   }
-  function opciones(select, valores) {
-    select.replaceChildren(...valores.map(valor => new Option(String(valor), String(valor))));
+  function opciones(select, valores, etiqueta = String) {
+    select.replaceChildren(...valores.map(valor => new Option(etiqueta(valor), String(valor))));
   }
   function comprobarFecha() {
     const rangoCompleto = serieCompleta && fechas.length === 0
@@ -56,7 +57,8 @@ if (form) {
     comprobarFecha();
   }
   function actualizarFamilias() {
-    opciones(familia, series.filter(s => s.tienda === Number(tienda.value)).map(s => s.familia));
+    opciones(familia, series.filter(s => s.tienda === Number(tienda.value))
+      .map(s => s.familia), presentacion.nombreFamilia);
     actualizarFecha();
   }
   function limpiarResultado() {
@@ -120,11 +122,15 @@ if (form) {
         })});
       const datos = await respuesta.json();
       if (!respuesta.ok) throw new Error(datos.error || "No se pudo generar la predicción.");
-      document.getElementById("ventas-estimadas").textContent = Number(datos.ventas_estimadas).toLocaleString("es-AR", {minimumFractionDigits: 6, maximumFractionDigits: 6});
-      document.getElementById("resultado-contexto").textContent = `Tienda ${datos.tienda} · ${datos.familia} · ${datos.fecha}`;
+      document.getElementById("ventas-estimadas").textContent =
+        presentacion.formatearUnidadesEstimadas(datos.ventas_estimadas);
+      document.getElementById("resultado-contexto").textContent =
+        `Tienda ${datos.tienda} · ${presentacion.nombreFamilia(datos.familia)} · ${datos.fecha}`;
       document.getElementById("resultado-modelo").textContent = `${datos.modelo} · época ${datos.epoca}. Promoción del día conocida anticipadamente.`;
       resultado.hidden = false;
-      mostrarEstado(datos.ventas_estimadas < 0 ? "El modelo devolvió una estimación negativa; se muestra sin recorte como limitación del MLP." : "Predicción real completada. No se ejecutó entrenamiento.", datos.ventas_estimadas < 0);
+      mostrarEstado(datos.ventas_estimadas < 0
+        ? "Predicción real completada. La estimación negativa se presenta como 0 unidades."
+        : "Predicción real completada. No se ejecutó entrenamiento.");
     } catch (error) { mostrarEstado(error.message, true); }
     finally {
       ocupado = false; form.removeAttribute("aria-busy");
@@ -151,13 +157,13 @@ if (forecastForm) {
     status.className = error ? "notice error mt-4" : "notice mt-4";
     status.setAttribute("role", error ? "alert" : "status");
   }
-  function setOptions(select, values) {
-    select.replaceChildren(...values.map(value => new Option(String(value), String(value))));
+  function setOptions(select, values, label = String) {
+    select.replaceChildren(...values.map(value => new Option(label(value), String(value))));
   }
   function updateFamilies() {
     const families = [...new Set(series.filter(item => item.tienda === Number(store.value))
       .map(item => item.familia))];
-    setOptions(family, families);
+    setOptions(family, families, presentacion.nombreFamilia);
     if (families.includes("BEAUTY")) family.value = "BEAUTY";
   }
   function clearForecast() {
@@ -211,12 +217,12 @@ if (forecastForm) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo generar el pronóstico.");
-      context.textContent = `Tienda ${data.tienda} · ${data.familia} · origen ${data.fecha_origen} · horizonte ${data.horizonte} días · ${data.modelo}, época ${data.epoca}.`;
+      context.textContent = `Tienda ${data.tienda} · ${presentacion.nombreFamilia(data.familia)} · origen ${data.fecha_origen} · horizonte ${data.horizonte} días · ${data.modelo}, época ${data.epoca}.`;
       rows.replaceChildren(...data.pronosticos.map(item => {
         const row = document.createElement("tr");
         for (const value of [
           item.fecha,
-          Number(item.ventas_estimadas).toLocaleString("es-AR", {minimumFractionDigits: 6, maximumFractionDigits: 6}),
+          presentacion.formatearUnidadesEstimadas(item.ventas_estimadas),
           Number(item.cantidad_en_promocion).toLocaleString("es-AR"),
         ]) {
           const cell = document.createElement("td");

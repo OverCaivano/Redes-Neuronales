@@ -79,6 +79,8 @@ def test_navegacion(cliente, ruta):
     assert 'id="theme-toggle"' in texto
     assert 'src="/static/tema.js"></script>' in texto
     assert texto.index('src="/static/tema.js"></script>') < texto.index('href="/static/estilos.css"')
+    assert 'src="/static/presentacion.js"' in texto
+    assert texto.index('src="/static/presentacion.js"') < texto.index('src="/static/app.js"')
     assert 'src="/static/app.js"' in texto
     assert "C:/secret" not in texto
     for ficticio in ("Elena Ruiz", "98.4", "50/50", "Math.random", "p-value", "AdamW", "RUN-2024", "95%"):
@@ -99,6 +101,11 @@ def test_opciones_y_prediccion_real_sin_fit(cliente, servicio, monkeypatch):
     assert "2017-07-16" in serie["fechas"]
     respuesta = cliente.post("/api/predicciones", json={"tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16"})
     assert respuesta.status_code == 200
+    assert set(respuesta.json) == {
+        "tienda", "familia", "fecha", "ventas_estimadas", "epoca", "modelo", "aviso",
+    }
+    assert respuesta.json["familia"] == "BEAUTY"
+    assert isinstance(respuesta.json["ventas_estimadas"], float)
     assert respuesta.json["ventas_estimadas"] == 1.
     assert respuesta.json["modelo"] == "Piloto local · best.pt"
     assert "checkpoint" not in respuesta.json
@@ -145,12 +152,20 @@ def test_pronostico_recursivo_completo(cliente):
         "tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 7,
     })
     assert respuesta.status_code == 200
+    assert set(respuesta.json) == {
+        "tienda", "familia", "fecha_origen", "horizonte", "epoca", "pronosticos", "modelo", "aviso",
+    }
     assert respuesta.json["modelo"] == "Completo · best.pt"
     assert respuesta.json["epoca"] == 2
+    assert respuesta.json["familia"] == "BEAUTY"
     assert [fila["fecha"] for fila in respuesta.json["pronosticos"]] == [
         f"2017-08-{dia:02d}" for dia in range(16, 23)
     ]
     assert all(fila["ventas_estimadas"] == 1. for fila in respuesta.json["pronosticos"])
+    assert set(respuesta.json["pronosticos"][0]) == {
+        "fecha", "ventas_estimadas", "cantidad_en_promocion",
+    }
+    assert isinstance(respuesta.json["pronosticos"][0]["ventas_estimadas"], float)
     assert "no es una predicción actual de 2026" in respuesta.json["aviso"]
     assert "checkpoint" not in respuesta.get_data(as_text=True)
     assert str(cliente.application.extensions["piloto"].raiz) not in respuesta.get_data(as_text=True)
@@ -245,12 +260,17 @@ def test_evaluacion_otro_checkpoint_no_se_muestra(servicio):
 
 
 def test_estaticos_y_cabeceras(cliente):
-    for ruta in ("/static/estilos.css", "/static/app.js", "/static/tema.js", "/static/favicon.svg"):
+    for ruta in (
+        "/static/estilos.css", "/static/app.js", "/static/presentacion.js",
+        "/static/tema.js", "/static/favicon.svg",
+    ):
         respuesta = cliente.get(ruta)
         assert respuesta.status_code == 200
         assert respuesta.headers["X-Content-Type-Options"] == "nosniff"
         assert "frame-ancestors 'none'" in respuesta.headers["Content-Security-Policy"]
     js = cliente.get("/static/app.js").get_data(as_text=True)
+    assert "formatearUnidadesEstimadas" in js
+    assert "nombreFamilia" in js
     assert "Math.random" not in js
     assert 'fetch("/api/predicciones"' in js
     assert "aria-busy" in js

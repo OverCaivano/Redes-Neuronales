@@ -29,6 +29,9 @@ python src/evaluate.py --model_path models/best_model.pt
 # Correr tests unitarios
 pytest tests/
 
+# Probar traducciones y formato visual de la interfaz
+node --test tests/test_presentacion.js
+
 # Formateo e inspección de código
 black src/
 flake8 src/

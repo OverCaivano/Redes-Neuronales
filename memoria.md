@@ -22,3 +22,5 @@
 - **[2026-10-28]:** Bloque C: StockPredict IA local con Flask, plantillas adaptadas de los cinco HTML de Stitch y API que reutiliza las predicciones Favorita. Métricas e historial leídos de artefactos locales; sin acceso ni suposiciones sobre Drive.
 
 - **[2026-11-11]:** Revisión para la demostración: se corrigieron etiquetas de modelos, alcance de métricas de un paso frente al backtest recursivo, referencias desactualizadas a Drive y documentación inicial del boilerplate. Verificada la web local en escritorio y móvil; sin cambios a datasets ni checkpoints.
+
+- **[2026-11-12]:** Presentación de predicciones: formato visual centralizado de unidades enteras y traducción española de las 33 familias; IDs y valores decimales de API conservados. Verificadas predicciones piloto/completa, pronóstico de siete días, 259 pruebas y formatos.

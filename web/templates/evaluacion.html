@@ -1,1 +1,162 @@
-{% extends "base.html" %}{% block contenido %}<div class="mb-space-lg"><p class="text-primary text-label-sm mb-2 uppercase tracking-wider">StockPredict IA · piloto · métricas de un paso</p><h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Evaluación diaria a un paso · modelo piloto</h1><p class="text-on-surface-variant mt-2">Estas métricas corresponden al checkpoint piloto y a predicciones diarias a un paso; no describen el backtest recursivo.</p></div>{% for aviso in resumen.advertencias %}<p class="notice error" role="alert">{{ aviso }}</p>{% endfor %}<div class="notice"><strong>Alcance de estas métricas</strong><p>Modelo piloto · checkpoint best.pt · evaluación diaria del test interno. El pronóstico recursivo del modelo completo se informa por separado y no debe compararse como si fuera la misma evaluación.</p></div>{% set e = resumen.evaluacion %}{% if e %}<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">{% for nombre, valor in [('MAE · piloto (1 paso)', e.mlp.mae), ('RMSE · piloto (1 paso)', e.mlp.rmse), ('RMSE · baseline semanal', e.baseline.rmse)] %}<article class="card"><p class="eyebrow">{{ nombre }}</p><p class="metric">{{ '%.6f'|format(valor) }}</p><p>Ventas en unidades originales</p></article>{% endfor %}<article class="card"><p class="eyebrow">Reducción vs. baseline</p><p class="metric text-secondary">{{ '%.2f'|format(e.mejora) }} %</p><p>Comparación sobre las mismas filas</p></article></section><section class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden"><div class="table-scroll"><table class="w-full text-left border-collapse"><caption>Predicción diaria a un paso: piloto MLP vs. baseline semanal</caption><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>Ejemplos</th></tr></thead><tbody><tr><th>Piloto MLP · best.pt (época 4)</th><td>{{ '%.6f'|format(e.mlp.mae) }}</td><td>{{ '%.6f'|format(e.mlp.rmse) }}</td><td>{{ e.mlp.n }}</td></tr><tr><th>Baseline: ventas de hace 7 días</th><td>{{ '%.6f'|format(e.baseline.mae) }}</td><td>{{ '%.6f'|format(e.baseline.rmse) }}</td><td>{{ e.baseline.n }}</td></tr></tbody></table></div></section><section class="card"><h2>Comparación de errores</h2>{% for metrica in ['mae', 'rmse'] %}<div class="mt-6"><h3>{{ metrica|upper }}</h3>{% for etiqueta, valor, color in [('MLP', e.mlp[metrica], 'bg-primary-container'), ('Baseline', e.baseline[metrica], 'bg-tertiary')] %}<div class="my-3"><div class="flex justify-between text-label-md"><span>{{ etiqueta }}</span><span>{{ '%.6f'|format(valor) }}</span></div><div class="bg-surface-container-low rounded-lg h-4 mt-1"><div class="{{ color }} rounded-lg h-4" style="width: {{ 100 * valor / ([e.mlp[metrica], e.baseline[metrica]]|max) }}%"></div></div></div>{% endfor %}</div>{% endfor %}</section><div class="notice"><strong>Test interno del piloto: {{ e.inicio }} a {{ e.fin }}</strong><p>{{ e.mlp.n }} observaciones del dataset de entrenamiento, predicción diaria a un paso. No es el test.csv de Kaggle ni un pronóstico recursivo; baseline = ventas(t−7). No se realizaron pruebas de significancia.</p></div><section class="notice"><h2>Backtest recursivo de siete días · modelo completo</h2><p>Muestra de validación 2017: 20 series, seis orígenes y 840 pronósticos. MAE 301,54 frente a 288,23 del baseline semanal; RMSE 681,90 frente a 750,25. Resultado mixto: mejor RMSE, peor MAE; no demuestra precisión generalizable. Se asume que las promociones futuras eran conocidas en cada origen. El informe detallado se guarda localmente en runs/evaluaciones/.</p></section>{% else %}<div class="card">No hay una evaluación verificable disponible para este checkpoint.</div>{% endif %}{% endblock %}
+{% extends "base.html" %}
+{% block contenido %}
+<header class="mb-space-lg">
+  <p class="text-primary text-label-sm mb-2 uppercase tracking-wider">StockPredict IA · evaluación</p>
+  <h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Evaluación del modelo completo</h1>
+  <p class="text-on-surface-variant mt-2">Primero, la evaluación diaria del modelo completo sobre el test interno; más abajo, su backtest recursivo y la evaluación histórica del piloto.</p>
+</header>
+
+{% for aviso in resumen.advertencias %}
+<p class="notice error" role="alert">{{ aviso }}</p>
+{% endfor %}
+
+{% set e = resumen.evaluacion_completa %}
+{% if e %}
+<section class="card mb-space-lg" aria-labelledby="evaluacion-diaria">
+  <p class="eyebrow">Resultado principal · test interno · predicción diaria a un paso</p>
+  <h2 id="evaluacion-diaria">Modelo completo · MLP</h2>
+  <p>En cada fecha se predice un día usando historia observada hasta el día anterior. Esta evaluación no es recursiva.</p>
+</section>
+
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md mb-space-lg" aria-label="Métricas principales del modelo completo">
+  <article class="card">
+    <p class="eyebrow">MAE · modelo completo</p>
+    <p class="metric">{{ '%.2f'|format(e.mlp.mae) }}</p>
+    <p>Unidades de error medio absoluto</p>
+  </article>
+  <article class="card">
+    <p class="eyebrow">RMSE · modelo completo</p>
+    <p class="metric">{{ '%.2f'|format(e.mlp.rmse) }}</p>
+    <p>Unidades; penaliza más los errores grandes</p>
+  </article>
+  <article class="card">
+    <p class="eyebrow">Observaciones del test</p>
+    <p class="metric">{{ '{:,.0f}'.format(e.mlp.n).replace(',', '.') }}</p>
+    <p>Del {{ e.inicio }} al {{ e.fin }}</p>
+  </article>
+  <article class="card">
+    <p class="eyebrow">Checkpoint evaluado</p>
+    <p class="text-title-md">Época {{ e.epoca|int }} · {{ e.input_dim|int }} características</p>
+    <p style="overflow-wrap:anywhere">{{ e.checkpoint }}</p>
+  </article>
+</section>
+
+<section class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden mb-space-lg" aria-labelledby="comparacion-diaria">
+  <div class="p-space-md">
+    <h2 id="comparacion-diaria">Comparación diaria a un paso</h2>
+    <p>Ambos métodos se comparan sobre las mismas observaciones del test interno.</p>
+  </div>
+  <div class="table-scroll">
+    <table class="w-full text-left border-collapse">
+      <caption>Modelo completo MLP frente a la referencia de ventas de hace siete días</caption>
+      <thead><tr><th>Método</th><th>MAE</th><th>RMSE</th><th>Observaciones</th></tr></thead>
+      <tbody>
+        <tr><th>Modelo completo · best.pt (época {{ e.epoca|int }})</th><td>{{ '%.2f'|format(e.mlp.mae) }}</td><td>{{ '%.2f'|format(e.mlp.rmse) }}</td><td>{{ '{:,.0f}'.format(e.mlp.n).replace(',', '.') }}</td></tr>
+        <tr><th>Baseline semanal · ventas(t−7)</th><td>{{ '%.2f'|format(e.baseline.mae) }}</td><td>{{ '%.2f'|format(e.baseline.rmse) }}</td><td>{{ '{:,.0f}'.format(e.baseline.n).replace(',', '.') }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="p-space-md">Reducción del error frente al baseline, calculada con los valores completos del artefacto: MAE <strong>{{ '%.2f'|format(e.mejora_mae) }}%</strong> · RMSE <strong>{{ '%.2f'|format(e.mejora_rmse) }}%</strong>.</p>
+</section>
+
+<section class="card mb-space-lg" aria-labelledby="barras-diarias">
+  <h2 id="barras-diarias">Errores · modelo completo y baseline semanal</h2>
+  {% for metrica, titulo in [('mae', 'MAE'), ('rmse', 'RMSE')] %}
+  {% set maximo = [e.mlp[metrica], e.baseline[metrica]]|max %}
+  <div class="mt-6">
+    <h3>{{ titulo }}</h3>
+    {% for etiqueta, valor, color in [('Modelo completo', e.mlp[metrica], 'bg-primary-container'), ('Baseline semanal', e.baseline[metrica], 'bg-tertiary')] %}
+    <div class="my-3">
+      <div class="flex justify-between text-label-md"><span>{{ etiqueta }}</span><span>{{ '%.2f'|format(valor) }}</span></div>
+      <div class="bg-surface-container-low rounded-lg h-4 mt-1"><div class="{{ color }} rounded-lg h-4" style="width: {{ 100 * valor / maximo }}%"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</section>
+
+<aside class="notice mb-space-xl">
+  <strong>Alcance de la evaluación diaria</strong>
+  <p>Test interno del {{ e.inicio }} al {{ e.fin }}: {{ '{:,.0f}'.format(e.mlp.n).replace(',', '.') }} observaciones, {{ e.tiendas }} tiendas y {{ e.familias }} familias. Checkpoint {{ e.checkpoint }}, época {{ e.epoca|int }}. El baseline es ventas(t−7). No es el test.csv de Kaggle, no es el backtest recursivo y no incluye una prueba de significancia.</p>
+</aside>
+{% else %}
+<div class="card mb-space-lg">No hay una evaluación diaria verificable del modelo completo para el checkpoint local.</div>
+{% endif %}
+
+{% set b = resumen.backtest_completo %}
+<section class="mb-space-xl" aria-labelledby="backtest-recursivo">
+  <p class="eyebrow">Evaluación independiente · modelo completo</p>
+  <h2 id="backtest-recursivo">Backtest recursivo de siete días</h2>
+  <p class="text-on-surface-variant">A diferencia del test diario anterior, aquí cada ventana pronostica recursivamente hasta siete días y reutiliza sus propias estimaciones.</p>
+  {% if b %}
+  <div class="notice mt-4">
+    <strong>Resultado mixto; no equivale a una mejora uniforme.</strong>
+    <p>En el agregado, el MAE del MLP es {{ '%.2f'|format(-b.mejora_mae) }}% mayor que la referencia semanal y su RMSE es {{ '%.2f'|format(b.mejora_rmse) }}% menor. La referencia resulta mejor en MAE y el MLP en RMSE.</p>
+  </div>
+  <div class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden mt-space-md">
+    <div class="table-scroll">
+      <table class="w-full text-left border-collapse">
+        <caption>Resumen agregado del backtest recursivo de validación</caption>
+        <thead><tr><th>Método</th><th>MAE</th><th>RMSE</th><th>Pronósticos</th></tr></thead>
+        <tbody>
+          <tr><th>Modelo completo · recursivo</th><td>{{ '%.2f'|format(b.mlp.mae) }}</td><td>{{ '%.2f'|format(b.mlp.rmse) }}</td><td>{{ '{:,.0f}'.format(b.mlp.n).replace(',', '.') }}</td></tr>
+          <tr><th>Referencia semanal recursiva</th><td>{{ '%.2f'|format(b.baseline.mae) }}</td><td>{{ '%.2f'|format(b.baseline.rmse) }}</td><td>{{ '{:,.0f}'.format(b.baseline.n).replace(',', '.') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden mt-space-md">
+    <div class="table-scroll">
+      <table class="w-full text-left border-collapse">
+        <caption>Errores reales por horizonte; 20 series, {{ b.ventanas }} orígenes y siete días por origen</caption>
+        <thead><tr><th>Día</th><th>MAE MLP</th><th>RMSE MLP</th><th>MAE semanal</th><th>RMSE semanal</th><th>Observaciones</th></tr></thead>
+        <tbody>
+          {% for fila in b.horizontes %}
+          <tr><th>{{ fila.horizonte }}</th><td>{{ '%.2f'|format(fila.mlp.mae) }}</td><td>{{ '%.2f'|format(fila.mlp.rmse) }}</td><td>{{ '%.2f'|format(fila.baseline.mae) }}</td><td>{{ '%.2f'|format(fila.baseline.rmse) }}</td><td>{{ '{:,.0f}'.format(fila.mlp.n).replace(',', '.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="notice mt-space-md">
+    <strong>Alcance y limitaciones del backtest</strong>
+    <p>Validación del {{ b.inicio }} al {{ b.fin }}; fechas de origen entre {{ b.origen_inicio }} y {{ b.origen_fin }}. Se evaluaron {{ b.series }} series en {{ b.ventanas }} ventanas completas ({{ '{:,.0f}'.format(b.predicciones).replace(',', '.') }} pronósticos). El conjunto test se reservó. {{ b.supuesto_promociones }}</p>
+    <p>La evaluación es una muestra acotada de 2017 y no demuestra precisión generalizable a otros períodos.</p>
+  </aside>
+  {% else %}
+  <div class="card mt-space-md">No hay un backtest recursivo verificable para el checkpoint completo local.</div>
+  {% endif %}
+</section>
+
+{% set piloto = resumen.evaluacion %}
+<section class="mb-space-xl" aria-labelledby="evaluacion-piloto">
+  <p class="eyebrow">Resultados secundarios</p>
+  <h2 id="evaluacion-piloto">Modelo piloto · evaluación histórica</h2>
+  {% if piloto %}
+  <p class="text-on-surface-variant">Evaluación diaria a un paso del checkpoint piloto; no debe confundirse con el backtest recursivo del modelo completo.</p>
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-space-md mt-space-md" aria-label="Métricas históricas del modelo piloto">
+    <article class="card"><p class="eyebrow">MAE · piloto</p><p class="metric">{{ '%.6f'|format(piloto.mlp.mae) }}</p></article>
+    <article class="card"><p class="eyebrow">RMSE · piloto</p><p class="metric">{{ '%.6f'|format(piloto.mlp.rmse) }}</p></article>
+    <article class="card"><p class="eyebrow">Test · observaciones</p><p class="metric">{{ '{:,.0f}'.format(piloto.mlp.n).replace(',', '.') }}</p></article>
+  </section>
+  <div class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden mt-space-md">
+    <div class="table-scroll">
+      <table class="w-full text-left border-collapse">
+        <caption>Evaluación histórica diaria a un paso del piloto y baseline semanal</caption>
+        <thead><tr><th>Método</th><th>MAE</th><th>RMSE</th><th>Observaciones</th></tr></thead>
+        <tbody>
+          <tr><th>Piloto · {{ piloto.checkpoint }} (época {{ piloto.epoca|int }})</th><td>{{ '%.6f'|format(piloto.mlp.mae) }}</td><td>{{ '%.6f'|format(piloto.mlp.rmse) }}</td><td>{{ '{:,.0f}'.format(piloto.mlp.n).replace(',', '.') }}</td></tr>
+          <tr><th>Baseline semanal · ventas(t−7)</th><td>{{ '%.6f'|format(piloto.baseline.mae) }}</td><td>{{ '%.6f'|format(piloto.baseline.rmse) }}</td><td>{{ '{:,.0f}'.format(piloto.baseline.n).replace(',', '.') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <aside class="notice mt-space-md">
+    <strong>Alcance del piloto</strong>
+    <p>Test interno del {{ piloto.inicio }} al {{ piloto.fin }}: {{ piloto.tiendas|length }} tiendas y {{ piloto.familias|length }} familias. No es el test.csv de Kaggle; la referencia es ventas(t−7).</p>
+  </aside>
+  {% else %}
+  <div class="card mt-space-md">No hay una evaluación histórica verificable disponible para el checkpoint piloto.</div>
+  {% endif %}
+</section>
+{% endblock %}

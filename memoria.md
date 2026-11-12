@@ -24,3 +24,5 @@
 - **[2026-11-11]:** Revisión para la demostración: se corrigieron etiquetas de modelos, alcance de métricas de un paso frente al backtest recursivo, referencias desactualizadas a Drive y documentación inicial del boilerplate. Verificada la web local en escritorio y móvil; sin cambios a datasets ni checkpoints.
 
 - **[2026-11-12]:** Presentación de predicciones: formato visual centralizado de unidades enteras y traducción española de las 33 familias; IDs y valores decimales de API conservados. Verificadas predicciones piloto/completa, pronóstico de siete días, 259 pruebas y formatos.
+
+- **[2026-11-12]:** Evaluación web reorganizada para priorizar el test diario del MLP completo y separar el backtest recursivo de validación y la evaluación piloto. Las métricas se leen de artefactos ligados por hash al checkpoint; se verificaron escritorio, móvil y ambos temas.

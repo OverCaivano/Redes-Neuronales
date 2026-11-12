@@ -44,6 +44,10 @@ class ServicioPiloto:
         self.csv = self.raiz / "data/raw/train.csv"
         self.promociones = self.raiz / "data/raw/test.csv"
         self.evaluacion = self.raiz / "runs/evaluaciones/favorita_piloto_test/evaluacion.json"
+        self.evaluacion_completa = self.raiz / "runs/evaluacion_completa_20/evaluacion.json"
+        self.backtest_completo = (
+            self.raiz / "runs/evaluaciones/pronostico_recursivo_validacion_20261111_final/informe.json"
+        )
         self._opciones = {}
         self._firma = {}
         self._lock = Lock()
@@ -177,11 +181,149 @@ class ServicioPiloto:
                 raise ValueError("Conteos o métricas incompatibles")
             evaluacion = {"mlp": mlp, "baseline": baseline,
                           "mejora": 100 * (1 - mlp["rmse"] / baseline["rmse"]),
-                          "inicio": datos["fecha_min"], "fin": datos["fecha_max"]}
+                          "inicio": datos["fecha_min"], "fin": datos["fecha_max"],
+                          "epoca": numero(datos["epoca_seleccionada_por_validacion"]),
+                          "checkpoint": "runs/favorita_subconjunto_reanudado_4/best.pt",
+                          "particion": datos["particion"], "protocolo": datos["protocolo"],
+                          "tiendas": datos["tiendas"], "familias": datos["familias"]}
         except (OSError, ValueError, KeyError, TypeError):
             advertencias.append("Evaluación local no disponible o incompatible con el checkpoint.")
-        return {"corridas": corridas, "evaluacion": evaluacion, "advertencias": advertencias,
-                "drive": "No verificado: esta aplicación no accede a Google Drive."}
+
+        evaluacion_completa = None
+        entrenamiento_completo = None
+        sha_checkpoint_completo = None
+        try:
+            entrenamiento_completo = json.loads(
+                (self.raiz / "runs/favorita_completa_20/resumen.json").read_text(encoding="utf-8")
+            )
+            sha_checkpoint_completo = huella_dataset(self.checkpoints["completo"])
+            datos = json.loads(self.evaluacion_completa.read_text(encoding="utf-8"))
+            filas_test = datos["filas_por_particion"]["test"]
+            columnas = datos["nombres_columnas"]
+            mlp = {k: numero(datos["mlp"][k]) for k in ("mae", "rmse", "n")}
+            baseline = {k: numero(datos["baseline_semanal"][k]) for k in ("mae", "rmse", "n")}
+            epoca = numero(datos["epoca_seleccionada_por_validacion"])
+            input_dim = numero(datos["input_dim"])
+            if (
+                datos["checkpoint_sha256"] != sha_checkpoint_completo
+                or datos["dataset_sha256"] != entrenamiento_completo["dataset_sha256"]
+                or datos["particion"] != "test_interno"
+                or datos["protocolo"] != "diario_a_un_paso_historia_observada_hasta_t-1"
+                or epoca != entrenamiento_completo["mejor_epoca"]
+                or input_dim != entrenamiento_completo["input_dim"]
+                or not isinstance(columnas, list)
+                or len(columnas) != input_dim
+                or any(not isinstance(nombre, str) for nombre in columnas)
+                or filas_test != entrenamiento_completo["filas_por_particion"]["test"]
+                or mlp["n"] != baseline["n"]
+                or mlp["n"] != filas_test
+                or baseline["mae"] <= 0
+                or baseline["rmse"] <= 0
+            ):
+                raise ValueError("Evaluación completa incompatible con checkpoint o partición")
+            evaluacion_completa = {
+                "mlp": mlp,
+                "baseline": baseline,
+                "mejora_mae": 100 * (1 - mlp["mae"] / baseline["mae"]),
+                "mejora_rmse": 100 * (1 - mlp["rmse"] / baseline["rmse"]),
+                "inicio": datos["fecha_min"],
+                "fin": datos["fecha_max"],
+                "epoca": epoca,
+                "input_dim": input_dim,
+                "checkpoint": "runs/favorita_completa_20/best.pt",
+                "particion": datos["particion"],
+                "protocolo": datos["protocolo"],
+                "tiendas": sum(nombre.startswith("tienda_") for nombre in columnas),
+                "familias": sum(nombre.startswith("familia_") for nombre in columnas),
+            }
+        except (OSError, ValueError, KeyError, TypeError):
+            advertencias.append("Evaluación diaria del modelo completo no disponible o incompatible.")
+
+        backtest_completo = None
+        try:
+            if entrenamiento_completo is None or sha_checkpoint_completo is None:
+                raise ValueError("Checkpoint completo no disponible")
+            datos = json.loads(self.backtest_completo.read_text(encoding="utf-8"))
+            general = datos["general"]
+            mlp = {k: numero(general["mlp"][k]) for k in ("mae", "rmse", "n")}
+            baseline = {k: numero(general["referencia_semanal"][k]) for k in ("mae", "rmse", "n")}
+            filas_horizonte = []
+            for fila in datos["por_horizonte"]:
+                horizonte = fila["horizonte"]
+                metrica_mlp = {k: numero(fila["mlp"][k]) for k in ("mae", "rmse", "n")}
+                metrica_baseline = {
+                    k: numero(fila["referencia_semanal"][k]) for k in ("mae", "rmse", "n")
+                }
+                if (
+                    metrica_mlp["n"] != metrica_baseline["n"]
+                    or metrica_baseline["mae"] <= 0
+                    or metrica_baseline["rmse"] <= 0
+                    or metrica_mlp["mae"] < 0
+                    or metrica_mlp["rmse"] < 0
+                ):
+                    raise ValueError("Métricas incompatibles por horizonte")
+                filas_horizonte.append({
+                    "horizonte": horizonte,
+                    "mlp": metrica_mlp,
+                    "baseline": metrica_baseline,
+                    "mejora_mae": 100 * (1 - metrica_mlp["mae"] / metrica_baseline["mae"]),
+                    "mejora_rmse": 100 * (1 - metrica_mlp["rmse"] / metrica_baseline["rmse"]),
+                })
+            origenes = datos["origenes_solicitados"]
+            ventanas = datos["ventanas_completas"]
+            pronosticos = datos["predicciones_evaluadas"]
+            if (
+                datos["checkpoint"]["sha256"] != sha_checkpoint_completo
+                or datos["dataset_sha256"] != entrenamiento_completo["dataset_sha256"]
+                or datos["checkpoint"]["epoca"] != entrenamiento_completo["mejor_epoca"]
+                or datos["checkpoint"]["input_dim"] != entrenamiento_completo["input_dim"]
+                or datos["particion"] != "validacion"
+                or datos["protocolo"] != "origen_movil_validacion_pronostico_recursivo_7_dias"
+                or datos["test_preservado"] is not True
+                or datos["horizonte_maximo"] != 7
+                or ventanas != datos["ventanas_con_resultados"]
+                or ventanas != datos["ventanas_completas"]
+                or ventanas != len(origenes)
+                or len(filas_horizonte) != 7
+                or [fila["horizonte"] for fila in filas_horizonte] != list(range(1, 8))
+                or mlp["n"] != baseline["n"]
+                or mlp["n"] != pronosticos
+                or sum(fila["mlp"]["n"] for fila in filas_horizonte) != pronosticos
+                or mlp["mae"] < 0
+                or mlp["rmse"] < 0
+                or baseline["mae"] < 0
+                or baseline["rmse"] < 0
+                or baseline["mae"] <= 0
+                or baseline["rmse"] <= 0
+            ):
+                raise ValueError("Backtest incompatible con checkpoint o alcance")
+            backtest_completo = {
+                "mlp": mlp,
+                "baseline": baseline,
+                "mejora_mae": 100 * (1 - mlp["mae"] / baseline["mae"]),
+                "mejora_rmse": 100 * (1 - mlp["rmse"] / baseline["rmse"]),
+                "inicio": datos["periodo_validacion"][0],
+                "fin": datos["periodo_validacion"][1],
+                "origen_inicio": origenes[0],
+                "origen_fin": origenes[-1],
+                "ventanas": ventanas,
+                "series": datos["series_evaluadas"],
+                "predicciones": pronosticos,
+                "epoca": datos["checkpoint"]["epoca"],
+                "input_dim": datos["checkpoint"]["input_dim"],
+                "horizontes": filas_horizonte,
+                "supuesto_promociones": datos["promociones"]["supuesto"],
+            }
+        except (OSError, ValueError, KeyError, TypeError, IndexError):
+            advertencias.append("Backtest recursivo del modelo completo no disponible o incompatible.")
+        return {
+            "corridas": corridas,
+            "evaluacion": evaluacion,
+            "evaluacion_completa": evaluacion_completa,
+            "backtest_completo": backtest_completo,
+            "advertencias": advertencias,
+            "drive": "No verificado: esta aplicación no accede a Google Drive.",
+        }
 
 
 def crear_app(servicio=None):

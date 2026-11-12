@@ -40,7 +40,55 @@ def servicio(checkpoint, tmp_path):
     (evaluacion / "evaluacion.json").write_text(json.dumps({
         "checkpoint_sha256": huella_dataset(ruta), "checkpoint": "C:/secret/modelo.pt",
         "mlp": {"mae": 1., "rmse": 2., "n": 31}, "baseline_semanal": {"mae": 2., "rmse": 3., "n": 31},
-        "fecha_min": "2017-07-16", "fecha_max": "2017-08-15"}))
+        "fecha_min": "2017-07-16", "fecha_max": "2017-08-15",
+        "epoca_seleccionada_por_validacion": 2, "particion": "test_interno",
+        "protocolo": "diario_a_un_paso_historia_observada_hasta_t-1",
+        "tiendas": [1], "familias": ["BEAUTY"]}))
+    hash_datos = huella_dataset(raiz / "data/raw/train.csv")
+    hash_completo = huella_dataset(completo / "best.pt")
+    (completo / "resumen.json").write_text(json.dumps({
+        "mejor_epoca": 2, "input_dim": 10, "dataset_sha256": hash_datos,
+        "filas_por_particion": {"test": 31},
+    }))
+    (raiz / "runs/evaluacion_completa_20").mkdir(parents=True)
+    (raiz / "runs/evaluacion_completa_20/evaluacion.json").write_text(json.dumps({
+        "checkpoint_sha256": hash_completo, "dataset_sha256": hash_datos,
+        "particion": "test_interno",
+        "protocolo": "diario_a_un_paso_historia_observada_hasta_t-1",
+        "epoca_seleccionada_por_validacion": 2, "input_dim": 10,
+        "nombres_columnas": [
+            "ventas_hace_1_dia", "ventas_hace_7_dias", "promedio_ventas_7_dias",
+            "cantidad_en_promocion", "dia_semana_seno", "dia_semana_coseno",
+            "mes_seno", "mes_coseno", "tienda_1", "familia_BEAUTY",
+        ],
+        "filas_por_particion": {"test": 31},
+        "mlp": {"mae": 1.5, "rmse": 2.5, "n": 31},
+        "baseline_semanal": {"mae": 2.5, "rmse": 4., "n": 31},
+        "periodos": {"test": ["2017-07-16", "2017-08-15"]},
+        "fecha_min": "2017-07-16", "fecha_max": "2017-08-15",
+    }))
+    backtest = raiz / "runs/evaluaciones/pronostico_recursivo_validacion_20261111_final"
+    backtest.mkdir(parents=True)
+    (backtest / "informe.json").write_text(json.dumps({
+        "checkpoint": {"sha256": hash_completo, "epoca": 2, "input_dim": 10},
+        "dataset_sha256": hash_datos, "particion": "validacion",
+        "protocolo": "origen_movil_validacion_pronostico_recursivo_7_dias",
+        "test_preservado": True, "horizonte_maximo": 7,
+        "origenes_solicitados": ["2017-06-15"],
+        "ventanas_con_resultados": 1, "ventanas_completas": 1,
+        "series_evaluadas": 2, "predicciones_evaluadas": 14,
+        "periodo_validacion": ["2017-06-16", "2017-07-15"],
+        "general": {
+            "mlp": {"mae": 4., "rmse": 5., "n": 14},
+            "referencia_semanal": {"mae": 3., "rmse": 6., "n": 14},
+        },
+        "por_horizonte": [{
+            "horizonte": h,
+            "mlp": {"mae": 4., "rmse": 5., "n": 2},
+            "referencia_semanal": {"mae": 3., "rmse": 6., "n": 2},
+        } for h in range(1, 8)],
+        "promociones": {"supuesto": "El calendario era conocido en el origen."},
+    }))
     return ServicioPiloto(raiz)
 
 
@@ -70,6 +118,11 @@ def test_navegacion(cliente, ruta):
     if ruta == "/evaluacion":
         assert "evaluación diaria a un paso" in texto.lower()
         assert "backtest recursivo" in texto.lower()
+        assert "modelo piloto · evaluación histórica" in texto.lower()
+        assert "Modelo completo · best.pt (época 2)" in texto
+        assert texto.index("Evaluación del modelo completo") < texto.index("Backtest recursivo")
+        assert texto.index("Backtest recursivo") < texto.index("Modelo piloto · evaluación histórica")
+        assert "40.00%" in texto and "37.50%" in texto
     if ruta == "/historial":
         assert "Modelo completo disponible localmente" in texto
         assert "Modelo completo / Drive" not in texto
@@ -234,6 +287,15 @@ def test_resumen_sanitizado_y_metricas_json(cliente):
     respuesta = cliente.get("/api/resumen")
     assert respuesta.json["evaluacion"]["mlp"]["mae"] == 1.
     assert respuesta.json["evaluacion"]["mejora"] == pytest.approx(100 / 3)
+    completa = respuesta.json["evaluacion_completa"]
+    assert completa["mlp"]["mae"] == 1.5
+    assert completa["baseline"]["rmse"] == 4.
+    assert completa["mejora_mae"] == pytest.approx(40.)
+    assert completa["mejora_rmse"] == pytest.approx(37.5)
+    backtest = respuesta.json["backtest_completo"]
+    assert backtest["mlp"]["mae"] == 4.
+    assert backtest["mejora_mae"] == pytest.approx(-100 / 3)
+    assert len(backtest["horizontes"]) == 7
     assert "secret" not in respuesta.get_data(as_text=True)
     assert "No verificado" in respuesta.json["drive"]
     assert len(respuesta.json["corridas"]) == 1
@@ -257,6 +319,18 @@ def test_evaluacion_otro_checkpoint_no_se_muestra(servicio):
     datos["checkpoint_sha256"] = "diferente"
     servicio.evaluacion.write_text(json.dumps(datos))
     assert servicio.resumen()["evaluacion"] is None
+
+
+def test_evaluaciones_completas_rechazan_checkpoint_distinto(servicio):
+    datos = json.loads(servicio.evaluacion_completa.read_text())
+    datos["checkpoint_sha256"] = "diferente"
+    servicio.evaluacion_completa.write_text(json.dumps(datos))
+    assert servicio.resumen()["evaluacion_completa"] is None
+
+    datos = json.loads(servicio.backtest_completo.read_text())
+    datos["checkpoint"]["sha256"] = "diferente"
+    servicio.backtest_completo.write_text(json.dumps(datos))
+    assert servicio.resumen()["backtest_completo"] is None
 
 
 def test_estaticos_y_cabeceras(cliente):

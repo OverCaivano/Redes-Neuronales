@@ -4,6 +4,117 @@ Este repositorio contiene un prototipo académico de predicción de ventas con F
 
 La aplicación estima ventas por tienda y familia; no conoce el inventario actual y no genera recomendaciones de reposición. El soporte de datos sintéticos sigue disponible para las pruebas del pipeline original.
 
+
+## Instalación rápida desde cero (Windows / PowerShell)
+
+> **Clonar NO alcanza para realizar predicciones.** GitHub incluye la aplicación, pero no los CSV ni los checkpoints Favorita. Antes de la demostración, solicitá al autor los artefactos indicados abajo. No hay un enlace público de descarga verificado de estos modelos en el repositorio.
+
+**Requisitos:** Git y Python **3.13 de 64 bits**, con el lanzador `py` disponible. Los dos checkpoints locales fueron comprobados con Python 3.13, PyTorch 2.13.0 y scikit-learn 1.9.0. El cargador rechaza versiones incompatibles; Python 3.10 o 3.12 no sirven para estos artefactos.
+
+### 1. Clonar e instalar
+
+Abrí PowerShell en la carpeta donde quieras guardar el proyecto:
+
+```powershell
+git clone https://github.com/OverCaivano/Redes-Neuronales.git
+cd Redes-Neuronales
+git switch main
+py -3.13 --version
+py -3.13 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt -c requirements-colab.txt torchvision==0.28.0
+.\venv\Scripts\python.exe -m pip check
+```
+
+No hace falta activar el entorno: todos los comandos utilizan directamente su intérprete. `requirements-web.txt` ya incluye `requirements.txt`. Se usa `requirements-colab.txt` como restricciones de versiones también en Windows porque fija las bibliotecas de los checkpoints; torchvision 0.28.0 coincide con el entorno local comprobado. No instalar luego versiones diferentes con otro comando sin restricciones. No se necesita GPU, CUDA, Node ni recompilar CSS para iniciar la web.
+
+**Límite de esta verificación:** se comprobó la carga de los modelos en el entorno local existente; no se reinstalaron dependencias ni se ensayó una instalación limpia en otra computadora. Si pip no consigue una versión compatible, detenerse y consultar al autor; no quitar los pins para forzar la carga.
+
+### 2. Obtener los archivos externos
+
+- Dataset: obtener los CSV originales de la competencia **Store Sales - Time Series Forecasting** de Corporación Favorita en Kaggle, con los permisos que exija la plataforma. Para esta web se necesitan `train.csv` y, para pronósticos recursivos, `test.csv`. También se pueden recibir del autor por un medio permitido. **No editar ni volver a guardar los CSV:** `train.csv` debe coincidir por SHA-256 con el utilizado al entrenar.
+- Modelos y resultados: solicitar al autor una copia de las carpetas enumeradas en la siguiente sección, tomada del proyecto local o de su respaldo verificado en Drive. No existe descarga automática desde Flask ni acceso automático a Drive. No cambiar el nombre `best.pt`, ni usar `models/best_model.pt` como sustituto.
+- Extraer/copiar dentro de la raíz `Redes-Neuronales`, conservando exactamente la estructura `data/raw/` y `runs/`. Si un archivo comprimido contiene ambas carpetas, no dejar un nivel extra como `Redes-Neuronales/paquete/runs/`.
+
+Comprobar los cuatro archivos mínimos para **ambos modelos y el pronóstico recursivo**:
+
+```powershell
+@(
+  'data/raw/train.csv',
+  'data/raw/test.csv',
+  'runs/favorita_subconjunto_reanudado_4/best.pt',
+  'runs/favorita_completa_20/best.pt'
+) | ForEach-Object {
+  if (-not (Test-Path -LiteralPath $_ -PathType Leaf)) { throw "Falta el archivo: $_" }
+}
+```
+
+Este control comprueba existencia, no compatibilidad. La aplicación verifica después el checkpoint, las transformaciones y la huella del dataset. Cargar únicamente checkpoints propios o recibidos del autor: contienen objetos Python serializados.
+
+### 3. Iniciar, usar y detener
+
+Desde la raíz del repositorio:
+
+```powershell
+.\venv\Scripts\python.exe -m src.web_app
+```
+
+Dejar esa terminal abierta y abrir **http://127.0.0.1:5000** en el navegador de la misma computadora. En Predicciones, probar tienda **1**, familia **BEAUTY** (mostrada en español), fecha **2017-07-16** con el piloto o el modelo completo. Para el pronóstico recursivo usar origen **2017-08-15** y horizonte **7**; requiere el modelo completo y las promociones de `test.csv`.
+
+Detener con **Ctrl+C** en la terminal. No es necesario entrenar ningún modelo para esta instalación. El servidor escucha solo en localhost, sin depurador. Las fuentes de Google son opcionales: sin Internet se usan fuentes del sistema.
+
+## Archivos necesarios para ejecutar las predicciones
+
+Estado comprobado en la rama local `main` el **12/11/2026**. Rutas relativas a la raíz del repositorio:
+
+| Archivo o carpeta | ¿Incluido en Git? | Para qué se necesita |
+|---|---|---|
+| `src/`, `web/templates/`, `web/static/` | Sí | Aplicación, API, lógica predictiva y estilos compilados. |
+| `requirements.txt`, `requirements-web.txt`, `requirements-colab.txt`, `configs/` | Sí | Dependencias y configuraciones de referencia. |
+| `notebooks/favorita_colab.ipynb` | Sí | Flujo de entrenamiento en Colab; no es necesario para usar los modelos entregados. |
+| `data/raw/train.csv` | **No; ignorado** | Consultas históricas e historial para ambos modelos. Localmente: 121.800.373 bytes. |
+| `data/raw/test.csv` | **No; ignorado** | Promociones futuras para pronósticos recursivos; no contiene ventas objetivo. Localmente: 1.022.269 bytes. |
+| `runs/favorita_subconjunto_reanudado_4/best.pt` | **No; ignorado** | Predicción piloto: tiendas 1 y 2, familias AUTOMOTIVE, BABY CARE y BEAUTY, 13 entradas. |
+| `runs/favorita_completa_20/best.pt` | **No; ignorado** | Predicción completa y recursiva: 54 tiendas, 33 familias, 95 entradas; corrida de 20 épocas. |
+| `models/best_model.pt` | Sí | Checkpoint del pipeline sintético anterior; **no reemplaza** los modelos Favorita. |
+
+Para que **Evaluación e Historial** también muestren toda la información, pedir estas carpetas completas (todas existen localmente, pero **ninguna está versionada**):
+
+- `runs/favorita_completa_20/`: `best.pt`, `last.pt`, `configuracion.yaml`, `metricas.csv`, `resumen.json`, `manifiesto.json` y `COMPLETO`. El historial verifica manifiesto, hashes y coherencia; no editar estos archivos. `last.pt` se conserva en el paquete para reanudación, pero no es necesario para inferencia.
+- `runs/favorita_subconjunto/` y `runs/favorita_subconjunto_reanudado_4/`: en cada una, `best.pt`, `last.pt`, `configuracion.yaml`, `metricas.csv` y `resumen.json`. Para mostrar el historial piloto se leen `metricas.csv` y `resumen.json`.
+- `runs/evaluacion_completa_20/evaluacion.json`: evaluación diaria del modelo completo; requiere también su `resumen.json` y checkpoint.
+- `runs/evaluaciones/favorita_piloto_test/evaluacion.json`: evaluación diaria piloto.
+- `runs/evaluaciones/pronostico_recursivo_validacion_20261111_final/informe.json`: backtest recursivo de validación. Los CSV acompañantes son útiles para auditar, pero la página lee el JSON.
+
+**Mínimo piloto:** `train.csv` y el `best.pt` del piloto. **Todas las predicciones:** los cuatro archivos de la comprobación anterior. **Demostración completa con métricas e historial:** además, los artefactos de esta lista. Los demás CSV de Favorita no son necesarios para iniciar la web ni consultar los modelos; `stores.csv` sí participa en el comando separado de backtest por tipos de tienda.
+
+No basta con copiar pesos de otra corrida: cada checkpoint contiene su preparador y debe corresponder a los resultados archivados. No modificar los paths de Colab dentro del checkpoint/configuración archivada: la web utiliza las rutas locales fijas de `src/web_app.py`. Para consultas CLI del modelo completo, indicar `--data-path data/raw/train.csv` si el checkpoint guarda una ruta `/content/...`.
+
+Los YAML de `configs/` son recetas para nuevas corridas, no contienen pesos: `configs/favorita_completa.yaml` configura 10 épocas y otra salida; no genera por sí solo el paquete archivado `favorita_completa_20`. El notebook permite entrenar y guardar artefactos por separado, pero no es un paso de instalación rápida ni garantiza reproducir los mismos resultados. Para la entrega al profesor, usar la corrida ya verificada del autor.
+
+## Funcionalidades actuales y alcance
+
+- **Piloto y modelo completo:** ambos están disponibles en el código; solo funcionan si sus archivos externos están presentes. El completo ya existe en esta computadora, pero un clon no lo recibe.
+- **Consulta histórica:** predice una fecha existente con siete días previos observados, sin usar la venta real del día objetivo. Se reutiliza el preparador guardado, sin reajuste.
+- **Pronóstico recursivo:** de 1 a 7 días con el modelo completo. Usa sus propias estimaciones como historia para los días siguientes y exige promociones conocidas para cada fecha. La demostración desde 2017-08-15 pronostica 2017-08-16 a 2017-08-22; no predice ventas actuales de 2026.
+- **Evaluación:** separa el test diario reservado, el backtest recursivo de validación y el piloto. Sus métricas no son intercambiables ni se recalculan al abrir la página.
+- **Historial:** muestra épocas y métricas de archivos locales; no consulta ni sincroniza Drive automáticamente. Si faltan archivos muestra advertencias, no resultados ficticios.
+- La interfaz presenta unidades enteras y familias traducidas; la API conserva decimales e identificadores originales. No se calcula stock, recomendaciones de compra ni intervalos de confianza.
+
+## Solución de errores frecuentes
+
+| Problema | Qué hacer |
+|---|---|
+| `py` o Python no encontrado | Instalar Python 3.13 de 64 bits con el lanzador de Windows, cerrar y abrir PowerShell y comprobar `py -3.13 --version`. Si se usa `python` en lugar de `py`, verificar primero `python --version` y crear el entorno con ese Python 3.13. |
+| No existe `venv\Scripts\python.exe` | Estar dentro de `Redes-Neuronales` y ejecutar `py -3.13 -m venv venv`. No hace falta activar scripts ni cambiar la política de ejecución de PowerShell. |
+| `ModuleNotFoundError` o dependencias faltantes | Ejecutar el comando de instalación de la sección rápida usando el intérprete del venv, no `pip` global; luego `python.exe -m pip check` con la misma ruta completa. |
+| Versiones incompatibles / pip no encuentra una versión | Confirmar Python 3.13 y las restricciones indicadas. Pedir al autor el entorno compatible; no editar el checkpoint ni saltarse la validación. Las versiones en requirements generales no están todas fijadas. |
+| Puerto 5000 ocupado | Ejecutar `.\venv\Scripts\python.exe -m src.web_app --port 5001` y abrir **http://127.0.0.1:5001**. |
+| Dataset faltante o SHA-256 diferente | Colocar el `train.csv` original en `data/raw/`, sin convertirlo con Excel ni modificar saltos de línea. Para pronósticos, colocar también `test.csv`. Solicitar al autor la copia coincidente si el hash no coincide. |
+| «Modelo no disponible» o checkpoint faltante | Revisar los dos paths `runs/.../best.pt` indicados arriba y los mensajes de la terminal. Un clon no descarga esos archivos. No usar el checkpoint sintético. |
+| Evaluación o historial ausente | Copiar los JSON, CSV, configuración y manifiesto de la misma corrida a sus rutas exactas; no regenerar valores manualmente. |
+| Fecha sin historia compatible | Elegir una fecha permitida; los huecos de calendario no se rellenan con ceros. Para la demostración recursiva usar el origen 2017-08-15. |
+
+
 ---
 
 ## 🎯 Objetivo del proyecto
@@ -492,18 +603,17 @@ Durante el desarrollo se ampliarán las pruebas para cubrir:
 
 ## 🛠️ Requisitos previos
 
-* Python 3.10+
+* Python 3.13 de 64 bits para los checkpoints Favorita entregados
 * PyTorch
 * Git
 * pip
 
 ---
 
-## 🚀 Inicio rápido: demostración local (Windows PowerShell)
+## 🚀 Repetir la demostración local (entorno y artefactos ya preparados)
 
 ```powershell
-.\venv\Scripts\python.exe -m pip install -r requirements.txt
-.\venv\Scripts\python.exe -m pip install -r requirements-web.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt -c requirements-colab.txt torchvision==0.28.0
 .\venv\Scripts\python.exe -m src.web_app
 ```
 
@@ -630,11 +740,10 @@ Ejecutar desde la raíz del repositorio, sin entrenamiento:
 
 ## Bloque C: StockPredict IA — aplicación web local
 
-Desde la raíz del repositorio, en Windows PowerShell:
+Con el entorno y los artefactos externos ya preparados según «Instalación rápida desde cero», desde la raíz del repositorio:
 
 ```powershell
-.\venv\Scripts\python.exe -m pip install -r requirements.txt
-.\venv\Scripts\python.exe -m pip install -r requirements-web.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt -c requirements-colab.txt torchvision==0.28.0
 .\venv\Scripts\python.exe -m src.web_app
 ```
 

@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from threading import Lock
 
+import yaml
 from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
@@ -17,6 +18,7 @@ from src.predecir_favorita import predecir_favorita, validar_consulta
 from src.preprocesamiento_temporal import generar_variables_historicas
 from src.pronosticar_favorita import leer_promociones_favorita, pronosticar_favorita
 from src.reanudacion import huella_dataset
+from src.sincronizacion import ARCHIVOS as ARCHIVOS_CORRIDA
 
 RAIZ = Path(__file__).resolve().parents[1]
 PAGINAS = {
@@ -30,6 +32,59 @@ def numero(valor):
     if isinstance(valor, bool) or not isinstance(valor, (float, int)) or not math.isfinite(valor):
         raise ValueError("Métrica inválida")
     return valor
+
+
+COLUMNAS_METRICAS_EPOCA = (
+    "epoca", "train_mse", "train_mae", "train_rmse", "val_mse", "val_mae", "val_rmse",
+    "baseline_mae", "baseline_rmse", "n_train", "n_validacion", "learning_rate", "segundos_epoca",
+)
+COLUMNAS_ENTERAS_EPOCA = {"epoca", "n_train", "n_validacion"}
+
+
+def leer_metricas_epoca(ruta, epocas_esperadas):
+    with Path(ruta).open(encoding="utf-8", newline="") as archivo:
+        lector = csv.DictReader(archivo)
+        if not lector.fieldnames or not set(COLUMNAS_METRICAS_EPOCA).issubset(lector.fieldnames):
+            raise ValueError("CSV de métricas incompleto")
+        historial = []
+        for fila in lector:
+            if not fila or all(valor in (None, "") for valor in fila.values()):
+                continue
+            valores = {}
+            for campo in COLUMNAS_METRICAS_EPOCA:
+                valor = numero(float(fila[campo]))
+                if campo in COLUMNAS_ENTERAS_EPOCA:
+                    if not valor.is_integer():
+                        raise ValueError("Conteo o época no entero")
+                    valor = int(valor)
+                valores[campo] = valor
+            historial.append(valores)
+    if len(historial) != epocas_esperadas or [fila["epoca"] for fila in historial] != list(
+        range(1, epocas_esperadas + 1)
+    ):
+        raise ValueError("El historial no contiene todas las épocas consecutivas")
+    return historial
+
+
+def verificar_manifiesto_historial(directorio):
+    ruta_manifiesto = Path(directorio) / "manifiesto.json"
+    if (Path(directorio) / "COMPLETO").read_text(encoding="utf-8").strip() != huella_dataset(
+        ruta_manifiesto
+    ):
+        raise ValueError("Marca del manifiesto incorrecta")
+    manifiesto = json.loads(ruta_manifiesto.read_text(encoding="utf-8"))
+    if (
+        manifiesto["version"] != 1
+        or set(manifiesto["archivos"]) != set(ARCHIVOS_CORRIDA)
+        or not all(clave in manifiesto for clave in ("identidad", "entorno", "codigo_sha256"))
+    ):
+        raise ValueError("Manifiesto del entrenamiento incompleto")
+    for nombre in ("best.pt", "configuracion.yaml", "resumen.json"):
+        archivo = Path(directorio) / nombre
+        registrado = manifiesto["archivos"][nombre]
+        if archivo.stat().st_size != registrado["bytes"] or huella_dataset(archivo) != registrado["sha256"]:
+            raise ValueError(f"Artefacto del entrenamiento incompatible: {nombre}")
+    return manifiesto
 
 
 class ServicioPiloto:
@@ -158,10 +213,9 @@ class ServicioPiloto:
             directorio = self.raiz / "runs" / carpeta
             try:
                 datos = json.loads((directorio / "resumen.json").read_text(encoding="utf-8"))
-                with (directorio / "metricas.csv").open(encoding="utf-8", newline="") as archivo:
-                    historial = [{k: numero(float(f[k])) for k in
-                                  ("epoca", "train_mse", "val_mse", "val_mae", "val_rmse")}
-                                 for f in csv.DictReader(archivo)]
+                historial = leer_metricas_epoca(
+                    directorio / "metricas.csv", int(datos["epocas_completadas"])
+                )
                 corridas.append({"nombre": etiqueta, "epocas": numero(datos["epocas_completadas"]),
                                  "mejor_epoca": numero(datos["mejor_epoca"]),
                                  "mae": numero(datos["mejor_val_mae"]), "rmse": numero(datos["mejor_val_rmse"]),
@@ -170,6 +224,64 @@ class ServicioPiloto:
                                            ("entrenamiento", "validacion", "test")}})
             except (OSError, ValueError, KeyError, TypeError):
                 advertencias.append(f"Resultados no disponibles: {etiqueta}.")
+        entrenamiento_completo = None
+        directorio = self.raiz / "runs/favorita_completa_20"
+        try:
+            datos = json.loads((directorio / "resumen.json").read_text(encoding="utf-8"))
+            configuracion = yaml.safe_load(
+                (directorio / "configuracion.yaml").read_text(encoding="utf-8")
+            )
+            manifiesto = verificar_manifiesto_historial(directorio)
+            modelo = configuracion["model"]
+            entrenamiento = configuracion["training"]
+            epocas = int(datos["epocas_completadas"])
+            if (
+                manifiesto["epoca"] != epocas
+                or epocas != entrenamiento["epochs"]
+                or datos["input_dim"] != modelo["input_dim"]
+                or datos["mejor_epoca"] > epocas
+                or datos["filas_por_particion"]["test"] <= 0
+            ):
+                raise ValueError("Resumen, configuración y manifiesto incompatibles")
+            historial = []
+            historial_verificado = False
+            try:
+                ruta_metricas = directorio / "metricas.csv"
+                registrado = manifiesto["archivos"]["metricas.csv"]
+                if (
+                    ruta_metricas.stat().st_size != registrado["bytes"]
+                    or huella_dataset(ruta_metricas) != registrado["sha256"]
+                ):
+                    raise ValueError("CSV de métricas incompatible con su manifiesto")
+                historial = leer_metricas_epoca(ruta_metricas, epocas)
+                historial_verificado = True
+            except (OSError, ValueError, KeyError, TypeError):
+                advertencias.append("Métricas por época del modelo completo ausentes o incompletas.")
+            entrenamiento_completo = {
+                "nombre": "Modelo completo",
+                "checkpoint": "runs/favorita_completa_20/best.pt",
+                "epocas": epocas,
+                "mejor_epoca": int(datos["mejor_epoca"]),
+                "input_dim": int(modelo["input_dim"]),
+                "hidden_dim": int(modelo["hidden_dim"]),
+                "output_dim": int(modelo["output_dim"]),
+                "semilla": int(configuracion["seed"]),
+                "device": configuracion["device"],
+                "batch_size": int(entrenamiento["batch_size"]),
+                "learning_rate": numero(entrenamiento["learning_rate"]),
+                "num_workers": int(entrenamiento["num_workers"]),
+                "optimizador": entrenamiento.get("optimizer", configuracion.get("optimizer")),
+                "perdida": entrenamiento.get("loss", configuracion.get("loss")),
+                "mejor_val_mae": numero(datos["mejor_val_mae"]),
+                "mejor_val_rmse": numero(datos["mejor_val_rmse"]),
+                "filas": {k: numero(datos["filas_por_particion"][k]) for k in
+                          ("entrenamiento", "validacion", "test")},
+                "periodos": datos["periodos"],
+                "historial": historial,
+                "historial_verificado": historial_verificado,
+            }
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
+            advertencias.append("Historial del modelo completo no disponible o incompatible con sus artefactos.")
         evaluacion = None
         try:
             datos = json.loads(self.evaluacion.read_text(encoding="utf-8"))
@@ -190,10 +302,10 @@ class ServicioPiloto:
             advertencias.append("Evaluación local no disponible o incompatible con el checkpoint.")
 
         evaluacion_completa = None
-        entrenamiento_completo = None
+        resumen_completo = None
         sha_checkpoint_completo = None
         try:
-            entrenamiento_completo = json.loads(
+            resumen_completo = json.loads(
                 (self.raiz / "runs/favorita_completa_20/resumen.json").read_text(encoding="utf-8")
             )
             sha_checkpoint_completo = huella_dataset(self.checkpoints["completo"])
@@ -206,15 +318,15 @@ class ServicioPiloto:
             input_dim = numero(datos["input_dim"])
             if (
                 datos["checkpoint_sha256"] != sha_checkpoint_completo
-                or datos["dataset_sha256"] != entrenamiento_completo["dataset_sha256"]
+                or datos["dataset_sha256"] != resumen_completo["dataset_sha256"]
                 or datos["particion"] != "test_interno"
                 or datos["protocolo"] != "diario_a_un_paso_historia_observada_hasta_t-1"
-                or epoca != entrenamiento_completo["mejor_epoca"]
-                or input_dim != entrenamiento_completo["input_dim"]
+                or epoca != resumen_completo["mejor_epoca"]
+                or input_dim != resumen_completo["input_dim"]
                 or not isinstance(columnas, list)
                 or len(columnas) != input_dim
                 or any(not isinstance(nombre, str) for nombre in columnas)
-                or filas_test != entrenamiento_completo["filas_por_particion"]["test"]
+                or filas_test != resumen_completo["filas_por_particion"]["test"]
                 or mlp["n"] != baseline["n"]
                 or mlp["n"] != filas_test
                 or baseline["mae"] <= 0
@@ -241,7 +353,7 @@ class ServicioPiloto:
 
         backtest_completo = None
         try:
-            if entrenamiento_completo is None or sha_checkpoint_completo is None:
+            if resumen_completo is None or sha_checkpoint_completo is None:
                 raise ValueError("Checkpoint completo no disponible")
             datos = json.loads(self.backtest_completo.read_text(encoding="utf-8"))
             general = datos["general"]
@@ -274,9 +386,9 @@ class ServicioPiloto:
             pronosticos = datos["predicciones_evaluadas"]
             if (
                 datos["checkpoint"]["sha256"] != sha_checkpoint_completo
-                or datos["dataset_sha256"] != entrenamiento_completo["dataset_sha256"]
-                or datos["checkpoint"]["epoca"] != entrenamiento_completo["mejor_epoca"]
-                or datos["checkpoint"]["input_dim"] != entrenamiento_completo["input_dim"]
+                or datos["dataset_sha256"] != resumen_completo["dataset_sha256"]
+                or datos["checkpoint"]["epoca"] != resumen_completo["mejor_epoca"]
+                or datos["checkpoint"]["input_dim"] != resumen_completo["input_dim"]
                 or datos["particion"] != "validacion"
                 or datos["protocolo"] != "origen_movil_validacion_pronostico_recursivo_7_dias"
                 or datos["test_preservado"] is not True
@@ -318,6 +430,7 @@ class ServicioPiloto:
             advertencias.append("Backtest recursivo del modelo completo no disponible o incompatible.")
         return {
             "corridas": corridas,
+            "entrenamiento_completo": entrenamiento_completo,
             "evaluacion": evaluacion,
             "evaluacion_completa": evaluacion_completa,
             "backtest_completo": backtest_completo,

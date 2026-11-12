@@ -12,3 +12,4 @@ select.form-control{appearance:none;padding-right:2.75rem;background-image:url("
 .form-control option:checked{background-color:#dbeafe;color:#1e3a8a}
 [data-theme=dark] .form-control option{background-color:#111827;color:#f1f5f9}
 [data-theme=dark] .form-control option:checked{background-color:#2563eb;color:#fff}
+.training-chart svg{width:100%;height:auto}

@@ -9,6 +9,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from test_evaluacion_favorita import checkpoint
 from src.reanudacion import huella_dataset
+from src.sincronizacion import ARCHIVOS as ARCHIVOS_CORRIDA
 from src.web_app import ServicioPiloto, crear_app
 
 
@@ -23,6 +24,7 @@ def servicio(checkpoint, tmp_path):
     (raiz / "data/raw").mkdir(parents=True)
     shutil.copyfile(ruta, destino / "best.pt")
     shutil.copyfile(ruta, completo / "best.pt")
+    shutil.copyfile(ruta, completo / "last.pt")
     shutil.copyfile(csv, raiz / "data/raw/train.csv")
     promociones = ["date,store_nbr,family,onpromotion"]
     promociones.extend(
@@ -34,7 +36,14 @@ def servicio(checkpoint, tmp_path):
                "input_dim": 10, "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
                "ruta_privada": "C:/secret/modelo.pt"}
     (destino / "resumen.json").write_text(json.dumps(resumen))
-    (destino / "metricas.csv").write_text("epoca,train_mse,val_mse,val_mae,val_rmse\n1,4,9,2,3\n2,3,4,1,2\n")
+    cabecera = (
+        "epoca,train_mse,train_mae,train_rmse,val_mse,val_mae,val_rmse,"
+        "baseline_mae,baseline_rmse,n_train,n_validacion,learning_rate,segundos_epoca\n"
+    )
+    (destino / "metricas.csv").write_text(
+        cabecera + "1,4,2,3,9,2,3,2,3,8,30,0.001,1.5\n"
+        "2,3,1,2,4,1.5,2,2,3,8,30,0.001,1.6\n"
+    )
     evaluacion = raiz / "runs/evaluaciones/favorita_piloto_test"
     evaluacion.mkdir(parents=True)
     (evaluacion / "evaluacion.json").write_text(json.dumps({
@@ -47,9 +56,34 @@ def servicio(checkpoint, tmp_path):
     hash_datos = huella_dataset(raiz / "data/raw/train.csv")
     hash_completo = huella_dataset(completo / "best.pt")
     (completo / "resumen.json").write_text(json.dumps({
-        "mejor_epoca": 2, "input_dim": 10, "dataset_sha256": hash_datos,
-        "filas_por_particion": {"test": 31},
+        "epocas_completadas": 2, "mejor_epoca": 2, "input_dim": 10,
+        "mejor_val_mae": 1.5, "mejor_val_rmse": 2., "dataset_sha256": hash_datos,
+        "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
+        "periodos": {
+            "entrenamiento": ["2017-06-01", "2017-06-15"],
+            "validacion": ["2017-06-16", "2017-07-15"],
+            "test": ["2017-07-16", "2017-08-15"],
+        },
     }))
+    (completo / "configuracion.yaml").write_text(
+        "seed: 42\ndevice: cpu\nmodel:\n  input_dim: 10\n  hidden_dim: 4\n  output_dim: 1\n"
+        "training:\n  epochs: 2\n  batch_size: 7\n  learning_rate: 0.001\n  num_workers: 0\n",
+        encoding="utf-8",
+    )
+    (completo / "metricas.csv").write_text(
+        cabecera + "1,4,2,3,9,2,3,2,3,8,30,0.001,1.5\n"
+        "2,3,1,2,4,1.5,2,2,3,8,30,0.001,1.6\n"
+    )
+    archivos = {}
+    for nombre in ARCHIVOS_CORRIDA:
+        ruta_archivo = completo / nombre
+        archivos[nombre] = {"bytes": ruta_archivo.stat().st_size, "sha256": huella_dataset(ruta_archivo)}
+    manifiesto_path = completo / "manifiesto.json"
+    manifiesto_path.write_text(json.dumps({
+        "version": 1, "epoca": 2, "identidad": "fixture",
+        "archivos": archivos, "entorno": {}, "codigo_sha256": "fixture",
+    }), encoding="utf-8")
+    (completo / "COMPLETO").write_text(huella_dataset(manifiesto_path), encoding="utf-8")
     (raiz / "runs/evaluacion_completa_20").mkdir(parents=True)
     (raiz / "runs/evaluacion_completa_20/evaluacion.json").write_text(json.dumps({
         "checkpoint_sha256": hash_completo, "dataset_sha256": hash_datos,
@@ -126,6 +160,12 @@ def test_navegacion(cliente, ruta):
     if ruta == "/historial":
         assert "Modelo completo disponible localmente" in texto
         assert "Modelo completo / Drive" not in texto
+        assert texto.index("Modelo completo disponible localmente") < texto.index(
+            "Modelo piloto · historial histórico"
+        )
+        assert 'id="tabla-epocas-completo"' in texto
+        assert 'data-epoca="2" data-train="3.0" data-val="4.0"' in texto
+        assert "No especificado en la configuración archivada." in texto
     for enlace in ("/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"):
         assert f'href="{enlace}"' in texto
     assert 'href="/static/favicon.svg"' in texto
@@ -301,6 +341,31 @@ def test_resumen_sanitizado_y_metricas_json(cliente):
     assert len(respuesta.json["corridas"]) == 1
 
 
+def test_historial_completo_usa_metricas_verificadas(servicio):
+    historial = servicio.resumen()["entrenamiento_completo"]
+    assert historial["epocas"] == 2
+    assert historial["input_dim"] == 10
+    assert historial["batch_size"] == 7
+    assert historial["learning_rate"] == 0.001
+    assert historial["optimizador"] is None
+    assert historial["perdida"] is None
+    assert historial["historial_verificado"] is True
+    assert [fila["epoca"] for fila in historial["historial"]] == [1, 2]
+    assert historial["historial"][1]["val_rmse"] == 2.
+
+
+def test_csv_completo_invalido_no_oculta_metadatos_verificables(servicio):
+    ruta = servicio.raiz / "runs/favorita_completa_20/metricas.csv"
+    ruta.write_text("epoca,metricas_incompletas\n1,100\n", encoding="utf-8")
+    resumen = servicio.resumen()
+    historial = resumen["entrenamiento_completo"]
+    assert historial["epocas"] == 2
+    assert historial["input_dim"] == 10
+    assert historial["historial_verificado"] is False
+    assert historial["historial"] == []
+    assert "Métricas por época del modelo completo ausentes o incompletas." in resumen["advertencias"]
+
+
 def test_artefactos_ausentes_y_errores_no_filtran_rutas(tmp_path, cliente, servicio, monkeypatch):
     c = crear_app(ServicioPiloto(tmp_path)).test_client()
     assert c.get("/api/opciones").status_code == 503
@@ -354,6 +419,7 @@ def test_estaticos_y_cabeceras(cliente):
     assert "prefers-color-scheme: dark" in tema
     assert 'localStorage.setItem(claveTema, tema)' in tema
     css = cliente.get("/static/estilos.css").get_data(as_text=True)
+    assert ".training-chart svg{width:100%;height:auto}" in css
     assert "[data-theme=dark]" in css
     assert "--page-bg:#0f172a" in css
     assert "--surface-card:#1e293b" in css

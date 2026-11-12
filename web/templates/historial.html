@@ -1,1 +1,122 @@
-{% extends "base.html" %}{% block contenido %}<div class="mb-space-lg"><p class="text-primary text-label-sm mb-2 uppercase tracking-wider">StockPredict IA · historial del piloto</p><h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Historial de entrenamientos y corridas</h1><p class="text-on-surface-variant mt-2">Dos registros del piloto: corrida inicial y continuación hasta la época 4; no son experimentos independientes.</p></div>{% for aviso in resumen.advertencias %}<p class="notice error" role="alert">{{ aviso }}</p>{% endfor %}<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-xl"><div class="lg:col-span-8 flex flex-col gap-space-md"><section class="card"><div class="table-scroll"><table class="w-full text-left"><caption>Corridas encontradas en el almacenamiento local</caption><thead><tr><th>Corrida</th><th>Épocas</th><th>Mejor época</th><th>MAE validación</th><th>RMSE validación</th></tr></thead><tbody>{% for r in resumen.corridas %}<tr><th>{{ r.nombre }}</th><td>{{ r.epocas }}</td><td>{{ r.mejor_epoca }}</td><td>{{ '%.6f'|format(r.mae) }}</td><td>{{ '%.6f'|format(r.rmse) }}</td></tr>{% else %}<tr><td colspan="5">No hay resultados locales disponibles.</td></tr>{% endfor %}</tbody></table></div></section>{% if resumen.corridas %}{% set r = resumen.corridas[-1] %}<section class="card mt-6"><h2>Historia de la corrida local más reciente</h2><p class="mb-4">MSE por época: entrenamiento y validación. Valores leídos de metricas.csv.</p><div aria-label="Curva de MSE de entrenamiento y validación" id="curva-entrenamiento"></div><div class="table-scroll"><table id="tabla-epocas"><thead><tr><th>época</th><th>MSE entrenamiento</th><th>MSE validación</th><th>MAE validación</th><th>RMSE validación</th></tr></thead><tbody>{% for f in r.historial %}<tr data-epoca="{{ f.epoca }}" data-train="{{ f.train_mse }}" data-val="{{ f.val_mse }}"><td>{{ f.epoca|int }}</td><td>{{ '%.6f'|format(f.train_mse) }}</td><td>{{ '%.6f'|format(f.val_mse) }}</td><td>{{ '%.6f'|format(f.val_mae) }}</td><td>{{ '%.6f'|format(f.val_rmse) }}</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}</div><div class="lg:col-span-4 flex flex-col gap-space-md"><section class="card"><h2>Checkpoint de consultas</h2><p class="badge">Piloto reanudado · best.pt</p><dl class="datos"><dt>Arquitectura</dt><dd>13 → 32 (ReLU) → 1</dd><dt>Entrenamiento</dt><dd>Adam · MSE · lr 0.001</dd><dt>Semilla</dt><dd>42</dd><dt>Mejor época local</dt><dd>4, seleccionada por validación</dd><dt>Alcance</dt><dd>2 tiendas · 3 familias</dd></dl><p>La API no permite descargar ni reemplazar checkpoints.</p></section><section class="notice mt-6"><h2>Modelo completo disponible localmente</h2><p>Checkpoint runs/favorita_completa_20/best.pt · 20 épocas · 95 entradas.</p><p>La página Predicciones ofrece consultas históricas y pronósticos recursivos de hasta siete días. El historial de entrenamiento mostrado aquí corresponde solo al piloto.</p></section></div></div>{% endblock %}
+{% extends "base.html" %}
+{% macro tabla_historial(r, tabla_id, grafico_id, titulo) %}
+<section class="card mt-space-md">
+  <h2>{{ titulo }}</h2>
+  <p class="mb-4">MSE de entrenamiento y validación por época. La tabla conserva los valores de metricas.csv.</p>
+  <div aria-label="Curva de MSE de entrenamiento y validación" class="training-chart" data-tabla="{{ tabla_id }}" id="{{ grafico_id }}"></div>
+  <div class="table-scroll">
+    <table class="w-full text-left border-collapse" id="{{ tabla_id }}">
+      <caption>{{ titulo }} · métricas registradas por época</caption>
+      <thead>
+        <tr>
+          <th>Época</th><th>MSE entrenamiento</th><th>MAE entrenamiento</th><th>RMSE entrenamiento</th>
+          <th>MSE validación</th><th>MAE validación</th><th>RMSE validación</th>
+          <th>MAE baseline</th><th>RMSE baseline</th><th>Muestras entrenamiento</th>
+          <th>Muestras validación</th><th>Learning rate</th><th>Segundos/época</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in r.historial %}
+        <tr data-epoca="{{ f.epoca }}" data-train="{{ f.train_mse }}" data-val="{{ f.val_mse }}">
+          <th>{{ f.epoca }}</th>
+          <td>{{ '%.6f'|format(f.train_mse) }}</td><td>{{ '%.6f'|format(f.train_mae) }}</td><td>{{ '%.6f'|format(f.train_rmse) }}</td>
+          <td>{{ '%.6f'|format(f.val_mse) }}</td><td>{{ '%.6f'|format(f.val_mae) }}</td><td>{{ '%.6f'|format(f.val_rmse) }}</td>
+          <td>{{ '%.6f'|format(f.baseline_mae) }}</td><td>{{ '%.6f'|format(f.baseline_rmse) }}</td>
+          <td>{{ '{:,.0f}'.format(f.n_train).replace(',', '.') }}</td><td>{{ '{:,.0f}'.format(f.n_validacion).replace(',', '.') }}</td>
+          <td>{{ '%.6g'|format(f.learning_rate) }}</td><td>{{ '%.3f'|format(f.segundos_epoca) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endmacro %}
+
+{% block contenido %}
+<header class="mb-space-lg">
+  <p class="text-primary text-label-sm mb-2 uppercase tracking-wider">StockPredict IA · historial de entrenamiento</p>
+  <h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Historial de entrenamientos</h1>
+  <p class="text-on-surface-variant mt-2">El modelo completo es el entrenamiento principal; el piloto y sus corridas quedan como referencia secundaria.</p>
+</header>
+
+{% for aviso in resumen.advertencias %}
+<p class="notice error" role="alert">{{ aviso }}</p>
+{% endfor %}
+
+{% set completo = resumen.entrenamiento_completo %}
+{% if completo %}
+<section aria-labelledby="modelo-completo">
+  <p class="eyebrow">Entrenamiento principal · historial verificado por manifiesto</p>
+  <h2 id="modelo-completo">Modelo completo disponible localmente</h2>
+  <p>Checkpoint <strong>{{ completo.checkpoint }}</strong>. Estas curvas y métricas corresponden a entrenamiento y validación; no son los resultados del test final. Consultá la <a href="/evaluacion">evaluación del modelo</a> para ese test.</p>
+
+  <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md mt-space-md" aria-label="Resumen del entrenamiento completo">
+    <article class="card"><p class="eyebrow">Épocas completadas</p><p class="metric">{{ completo.epocas }}</p></article>
+    <article class="card"><p class="eyebrow">Entradas · ocultas · salida</p><p class="metric">{{ completo.input_dim }} → {{ completo.hidden_dim }} → {{ completo.output_dim }}</p></article>
+    <article class="card"><p class="eyebrow">Mejor MAE de validación</p><p class="metric">{{ '%.6f'|format(completo.mejor_val_mae) }}</p><p>Época {{ completo.mejor_epoca }}</p></article>
+    <article class="card"><p class="eyebrow">Mejor RMSE de validación</p><p class="metric">{{ '%.6f'|format(completo.mejor_val_rmse) }}</p><p>Época {{ completo.mejor_epoca }}</p></article>
+  </section>
+
+  <section class="card mt-space-md">
+    <h3>Configuración registrada</h3>
+    <dl class="datos">
+      <dt>Arquitectura</dt><dd>MLP · {{ completo.input_dim }} → {{ completo.hidden_dim }} → {{ completo.output_dim }}</dd>
+      <dt>Entrenamiento</dt><dd>{{ completo.epocas }} épocas · batch {{ completo.batch_size }} · learning rate {{ '%.6g'|format(completo.learning_rate) }}</dd>
+      <dt>Entorno y semilla</dt><dd>{{ completo.device }} · semilla {{ completo.semilla }} · {{ completo.num_workers }} workers</dd>
+      <dt>Optimizador</dt><dd>{{ completo.optimizador or 'No especificado en la configuración archivada.' }}</dd>
+      <dt>Función de pérdida</dt><dd>{{ completo.perdida or 'No especificada en la configuración archivada.' }}</dd>
+      <dt>Filas por partición</dt><dd>Entrenamiento {{ '{:,.0f}'.format(completo.filas.entrenamiento).replace(',', '.') }} · validación {{ '{:,.0f}'.format(completo.filas.validacion).replace(',', '.') }} · test {{ '{:,.0f}'.format(completo.filas.test).replace(',', '.') }}</dd>
+      <dt>Período de entrenamiento</dt><dd>{{ completo.periodos.entrenamiento[0] }} a {{ completo.periodos.entrenamiento[1] }}</dd>
+      <dt>Período de validación</dt><dd>{{ completo.periodos.validacion[0] }} a {{ completo.periodos.validacion[1] }}</dd>
+    </dl>
+  </section>
+
+  {% if completo.historial_verificado %}
+  {{ tabla_historial(completo, 'tabla-epocas-completo', 'curva-entrenamiento', 'Evolución del modelo completo · ' ~ completo.epocas ~ ' épocas') }}
+  {% else %}
+  <aside class="notice mt-space-md">
+    <strong>Historial por época no disponible.</strong>
+    <p>Se muestran únicamente los metadatos de entrenamiento verificables; no se reconstruyen ni completan métricas faltantes.</p>
+  </aside>
+  {% endif %}
+</section>
+{% else %}
+<section class="card mb-space-xl">
+  <h2>Modelo completo</h2>
+  <p>No se pudo verificar el checkpoint, el manifiesto o la configuración del entrenamiento completo; no se muestran métricas de época no verificables.</p>
+</section>
+{% endif %}
+
+<section class="mt-space-xl" aria-labelledby="historial-piloto">
+  <p class="eyebrow">Resultados secundarios</p>
+  <h2 id="historial-piloto">Modelo piloto · historial histórico</h2>
+  <p class="text-on-surface-variant">La corrida inicial y la continuación son parte del mismo historial del piloto; no son experimentos independientes.</p>
+
+  <section class="card mt-space-md">
+    <div class="table-scroll">
+      <table class="w-full text-left border-collapse">
+        <caption>Corridas del piloto · métricas de validación, no del test final</caption>
+        <thead><tr><th>Corrida</th><th>Épocas completadas</th><th>Mejor época</th><th>MAE validación</th><th>RMSE validación</th></tr></thead>
+        <tbody>
+          {% for r in resumen.corridas %}
+          <tr><th>{{ r.nombre }}</th><td>{{ r.epocas }}</td><td>{{ r.mejor_epoca }}</td><td>{{ '%.6f'|format(r.mae) }}</td><td>{{ '%.6f'|format(r.rmse) }}</td></tr>
+          {% else %}
+          <tr><td colspan="5">No hay resultados locales disponibles para el piloto.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if resumen.corridas %}
+  {% set piloto = resumen.corridas[-1] %}
+  {% if piloto.historial %}
+  {{ tabla_historial(piloto, 'tabla-epocas-piloto', 'curva-entrenamiento-piloto', 'Corrida reanudada del piloto · ' ~ piloto.epocas ~ ' épocas') }}
+  {% else %}
+  <div class="card mt-space-md">No hay un CSV completo y verificable con las épocas del piloto.</div>
+  {% endif %}
+  {% else %}
+  <div class="card mt-space-md">No hay corridas piloto disponibles.</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -243,10 +243,11 @@ if (forecastForm) {
   });
 }
 
-// Curva trazada exclusivamente con las filas de metricas.csv renderizadas por el servidor.
-const grafico = document.getElementById("curva-entrenamiento");
-if (grafico) {
-  const filas = [...document.querySelectorAll("#tabla-epocas tbody tr")].map(f => ({epoca: Number(f.dataset.epoca), train: Number(f.dataset.train), val: Number(f.dataset.val)}));
+// Curvas trazadas exclusivamente con las filas de metricas.csv renderizadas por el servidor.
+for (const grafico of document.querySelectorAll(".training-chart")) {
+  const tabla = document.getElementById(grafico.dataset.tabla);
+  if (!tabla) continue;
+  const filas = [...tabla.querySelectorAll("tbody tr")].map(f => ({epoca: Number(f.dataset.epoca), train: Number(f.dataset.train), val: Number(f.dataset.val)}));
   if (filas.length && filas.every(f => Object.values(f).every(Number.isFinite))) {
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "0 0 680 270"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "MSE por época. Los valores exactos están en la tabla siguiente.");

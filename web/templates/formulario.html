@@ -1,22 +1,22 @@
 <form aria-describedby="consulta-estado" class="flex flex-col gap-space-md" id="prediction-form">
   <div class="flex flex-col gap-2">
     <label class="font-label-lg" for="model-select">Modelo</label>
-    <select class="w-full h-10 px-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container outline-none transition-all appearance-none cursor-pointer" id="model-select">
+    <select class="form-control font-body-md text-body-md" id="model-select">
       <option value="piloto">Piloto · 13 características</option>
       <option value="completo">Completo · 95 características</option>
     </select>
   </div>
   <div class="flex flex-col gap-2">
     <label class="font-label-lg" for="store-select">Tienda</label>
-    <select class="w-full h-10 px-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container outline-none transition-all appearance-none cursor-pointer" disabled="" id="store-select" required=""><option value="">Cargando opciones…</option></select>
+    <select class="form-control font-body-md text-body-md" disabled="" id="store-select" required=""><option value="">Cargando opciones…</option></select>
   </div>
   <div class="flex flex-col gap-2">
     <label class="font-label-lg" for="family-select">Familia</label>
-    <select class="w-full h-10 px-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container outline-none transition-all appearance-none cursor-pointer" disabled="" id="family-select" required=""><option value="">Cargando opciones…</option></select>
+    <select class="form-control font-body-md text-body-md" disabled="" id="family-select" required=""><option value="">Cargando opciones…</option></select>
   </div>
   <div class="flex flex-col gap-2">
     <label class="font-label-lg" for="date-input">Fecha histórica</label>
-    <input class="w-full h-10 px-3 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container outline-none transition-all" disabled="" id="date-input" required="" type="date"/>
+    <input class="form-control font-body-md text-body-md" disabled="" id="date-input" required="" type="date"/>
   </div>
   <p class="text-body-sm text-on-surface-variant" id="rango-fechas"></p>
   <div class="flex flex-wrap gap-3">

@@ -263,6 +263,15 @@ def test_estaticos_y_cabeceras(cliente):
     assert "[data-theme=dark]" in css
     assert "--page-bg:#0f172a" in css
     assert "--surface-card:#1e293b" in css
+    assert ".form-control:focus" in css
+    assert "background-image:url(" in css
+    assert "padding:.5rem .875rem" in css
+    assert "padding-right:2.75rem" in css
+    assert ".form-control option:checked" in css
+    assert "[data-theme=dark] .form-control option:checked" in css
+    for template in ("formulario.html", "predicciones.html"):
+        texto = (Path(__file__).resolve().parents[1] / "web/templates" / template).read_text(encoding="utf-8")
+        assert 'class="form-control' in texto
 
 
 def test_copias_stitch_identificadas():

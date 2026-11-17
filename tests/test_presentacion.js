@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const presentacion = require("../web/static/presentacion.js");
 
-test("expone solo formato de unidades, sin catalogos visuales Favorita", () => {
+test("expone solo formato de unidades, sin etiquetas de categorias antiguas", () => {
   assert.deepEqual(Object.keys(presentacion), ["formatearUnidadesEstimadas"]);
 });
 

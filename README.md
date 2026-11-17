@@ -1,123 +1,108 @@
 # StockPredict IA
 
-Prototipo académico para predecir ventas futuras de **productos individuales**
-por tienda con Python, PyTorch y Flask. La aplicación web activa utiliza el
-dataset sintético del proyecto; sus resultados no representan ventas reales ni
-demuestran precisión comercial.
+Prototipo académico en Python, PyTorch y Flask para pronosticar unidades
+vendidas por producto individual y tienda. El dataset de ventas, el catálogo y
+el inventario son sintéticos: no representan actividad comercial real.
 
-## Aplicación web
+## Inicio rápido en Windows / PowerShell
 
-Desde la raíz del repositorio, con las dependencias instaladas:
+Desde la raíz del repositorio:
 
 ```powershell
 py -3.13 -m venv venv
-.\venv\Scripts\python.exe -m pip install -r requirements-web.txt -c requirements-colab.txt torchvision==0.28.0
+.\venv\Scripts\python.exe -m pip install -r requirements-web.txt
 .\venv\Scripts\python.exe -m pip check
+.\venv\Scripts\python.exe -m src.datos_sinteticos --output-dir data\synthetic --seed 42
+.\venv\Scripts\python.exe -m src.pipeline_productos train
 .\venv\Scripts\python.exe -m src.web_app
 ```
 
-Abrir `http://127.0.0.1:5000`. La aplicación escucha solo en localhost y no
-entrena ni sobrescribe modelos al iniciarse.
-
-Requisitos locales del flujo web:
-
-- `data/synthetic/catalogo_productos_sinteticos.csv`
-- `runs/synthetic_product_sales_v1/best_model.pt`
-
-Si falta el catálogo, regenerar los datos sintéticos:
-
-```powershell
-.\venv\Scripts\python.exe -m src.datos_sinteticos --output-dir data\synthetic --seed 42
-```
-
-El checkpoint vive en `runs/`, que no se versiona. Si no está disponible, Flask
-puede iniciar, pero las opciones y predicciones responden `503`; no se usa un
-checkpoint alternativo ni se carga un modelo antiguo. El checkpoint existente
-se puede evaluar con:
+Abrir `http://127.0.0.1:5000`. La aplicación no entrena ni reemplaza artefactos
+al iniciarse. El comando de entrenamiento inicial crea un checkpoint y
+`metricas.json` en `runs\synthetic_product_sales_v1`; el pipeline rechaza
+sobrescribir una corrida existente. Si ya hay artefactos, conservá la corrida y
+usá un directorio nuevo al entrenar. Para correr la evaluación de nuevo contra
+los datos y checkpoint guardados:
 
 ```powershell
 .\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 ```
 
-Entrenar es una acción explícita. Cada nueva corrida necesita un directorio de
-salida que no contenga artefactos, por ejemplo `runs/synthetic_product_sales_v2`.
+Si falta el dataset sintético, el generador produce 127.440 filas de ventas
+diarias del `2023-01-01` al `2026-11-16`, un catálogo de 30 productos y un
+inventario sintético separado. Los CSV generados y los artefactos de
+entrenamiento están excluidos de Git. La aplicación requiere el catálogo y el
+checkpoint local; sin ellos informa que el modelo no está disponible, sin
+cargar otro modelo.
 
-### Interfaz y endpoints
+## Interfaz de una sola pantalla
 
-- `/` y `/inicio`: alcance del modelo sintético.
-- `/predicciones`: selección de tienda, producto, fecha actual/futura y
-  estrategia de reposición sintética.
-- `/acerca`: datos, arquitectura y limitaciones.
-- `/evaluacion` y `/historial`: páginas informativas que indican claramente
-  que las vistas anteriores se deshabilitaron; no presentan métricas históricas.
-- `GET /api/synthetic-v2/opciones`: tiendas y fechas admitidas.
-- `GET /api/synthetic-v2/productos`: catálogo sintético.
+`/` reúne la selección de tienda, producto, fecha futura y estrategia; muestra
+la predicción del MLP y la recomendación de reposición. Las antiguas páginas
+informativas no se registran como rutas. Las métricas se consultan desde el
+comando de evaluación, fuera de Flask.
+
+## API
+
+- `GET /api/synthetic-v2/opciones` y `GET /api/synthetic-v2/productos`.
 - `POST /api/synthetic-v2/predicciones`: recibe `tienda_id`, `producto_id` y
-  `fecha` (`AAAA-MM-DD`), y devuelve las unidades estimadas.
-- `GET /api/synthetic-v2/reposicion/estrategias`: estrategias disponibles.
-- `POST /api/synthetic-v2/reposiciones`: recibe tienda, producto, fecha y
-  estrategia (`basica` o `seguridad`). Predice cada día del plazo de reposición,
-  incluyendo la fecha inicial, y devuelve la demanda acumulada, el inventario
-  sintético y la cantidad recomendada. No modifica existencias ni realiza
-  compras.
+  fecha ISO `AAAA-MM-DD`.
+- `GET /api/synthetic-v2/reposicion/estrategias` y
+  `POST /api/synthetic-v2/reposiciones`: recomendación con estrategia básica o
+  stock de seguridad; no modifica existencias ni efectúa compras.
 
-El último día observado es `2026-11-16`. Las consultas deben ser actuales o
-futuras y posteriores a ese corte. No se requieren ventas del día anterior;
-precio y promoción no forman parte de las entradas de inferencia.
+El período de prueba termina el `2026-11-16`; la predicción web acepta fechas
+posteriores. Las métricas se leen de
+`runs\synthetic_product_sales_v1\metricas.json`, el reporte guardado por el
+pipeline. Consultarlas y volver a evaluar el checkpoint:
 
-Las rutas web/API anteriores (`/api/opciones`, `/api/resumen`,
-`/api/predicciones` y `/api/pronosticos`) ya no están registradas. Los módulos,
-pruebas y artefactos Favorita se conservan temporalmente para la limpieza final,
-pero la aplicación Flask no los importa ni los sirve.
+```powershell
+.\venv\Scripts\python.exe -m src.pipeline_productos evaluate
+```
 
-## Datos y modelo
-
-Los detalles de regeneración, esquema y limitaciones están en
-[data/synthetic/README.md](data/synthetic/README.md). El generador produce:
-
-- 127.440 observaciones diarias de ventas entre `2023-01-01` y `2026-11-16`.
-- 3 tiendas, 30 productos individuales y cinco categorías.
-- Catálogo e inventario sintéticos en archivos separados.
-
-El pipeline cronológico de entrenamiento/validación/prueba y la inferencia CLI
-están en `src/pipeline_productos.py` y `src/predecir_producto.py`. La inferencia
-web usa el checkpoint `runs/synthetic_product_sales_v1/best_model.pt`.
+El comando informa MAE/RMSE del MLP y el baseline en el test sintético; no
+entrena ni reemplaza el checkpoint.
 
 ## Arquitectura
 
 ```text
-Flask Blueprints → Controllers
-    ├── ServicioPrediccion
-    │   ├── Puerto de catálogo → repositorio CSV sintético
-    │   └── Puerto de predicción → adaptador PyTorch/checkpoint
-    └── ServicioReposicion
-        ├── ServicioPrediccion (inyectado)
-        ├── Puerto de inventario → repositorio CSV sintético
-        └── Strategy (básica / stock de seguridad)
+Flask / MVC
+  Controllers → Application Services → Ports
+                                  ↑
+                      CSV Repositories / PyTorch Adapter
 ```
 
-`src/composition.py` construye las implementaciones y `src/web_app.py` registra
-los Blueprints. Los servicios dependen de contratos inyectados; no acceden
-directamente a Flask, CSV ni PyTorch. Las pantallas de evaluación e historial
-del modelo antiguo están deshabilitadas hasta que haya una vista vinculada al
-pipeline sintético.
+- **Dominio:** productos, predicciones, inventario y reglas.
+- **Aplicación:** servicios independientes de Flask, archivos CSV y PyTorch.
+- **Infraestructura:** repositorios CSV y adaptador del modelo PyTorch.
+- **Interfaz:** Blueprints y controladores Flask que traducen HTTP al caso de
+  uso y renderizan las vistas.
+- **Composición:** `src/composition.py` construye dependencias; los servicios
+  reciben sus contratos por inyección.
+
+Los principios SOLID aparecen en la separación por responsabilidad (SRP), las
+estrategias reemplazables para extender la reposición (OCP/LSP), contratos
+pequeños por capacidad (ISP) e inversión de dependencias mediante Protocol e
+inyección (DIP). Repository aísla CSV/JSON; Adapter integra PyTorch detrás del
+puerto de predicción; Strategy selecciona el cálculo básico o con stock de
+seguridad. Singleton, Builder y Chain of Responsibility no aportan una
+necesidad concreta al flujo actual y no se implementan.
 
 ## Pruebas
 
 ```powershell
-.\venv\Scripts\python.exe -m pytest tests\test_web_app.py tests\test_replenishment.py tests\test_servicio_prediccion.py tests\test_repositorio_productos.py tests\test_adaptador_prediccion.py tests\test_controlador_prediccion.py tests\test_datos_sinteticos.py tests\test_pipeline_productos.py -q
+.\venv\Scripts\python.exe -m pytest -q
 node --test tests\test_presentacion.js tests\test_app.js
+git diff --check
 ```
 
-Las pruebas Flask validan la predicción individual, la recomendación y sus
-estrategias. La prueba de extremo a extremo contrasta las fechas de cobertura
-con el checkpoint local; se omite si faltan el checkpoint, el catálogo o el
-inventario sintéticos.
+La suite incluye generación y validación de datos, pipeline, predicción,
+reposición, la ruta principal de Flask y frontend. Las pruebas de predicción
+real requieren los CSV y el checkpoint locales.
 
-## Limitaciones
+## Límites
 
-Las ventas y existencias son sintéticas y no representan condiciones reales.
-La reposición es una recomendación matemática sencilla, no una compra ni un
-movimiento de stock. No incluye intervalos de confianza y las predicciones no
-están condicionadas por precio o promoción. Estos resultados no demuestran
-precisión comercial.
+Las ventas e inventario son sintéticos. MAE/RMSE describen únicamente la prueba
+cronológica sintética y no prueban desempeño con ventas reales. La salida de
+reposiciones es una recomendación demostrativa: no es una compra, movimiento
+de stock ni asesoramiento operativo.

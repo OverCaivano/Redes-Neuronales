@@ -378,11 +378,23 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
     elements.get("mensaje-reposicion").textContent,
     "No es necesario reponer.",
   );
-  assert.equal(payloads.length, 2);
+  respuestaReposicion = {
+    ...respuestaReposicion,
+    inventario: {...respuestaReposicion.inventario, tiempo_reposicion: 1},
+    periodo_cobertura: {
+      desde: "2026-11-25",
+      hasta: "2026-11-25",
+      dias: 1,
+    },
+  };
+  await form.listeners.submit({preventDefault() {}});
+  assert.equal(elements.get("plazo-reposicion").textContent, "1 día");
+  assert.equal(payloads.length, 3);
   assert.deepEqual(requests, [
     "/api/synthetic-v2/opciones",
     "/api/synthetic-v2/productos",
     "/api/synthetic-v2/reposicion/estrategias",
+    "/api/synthetic-v2/reposiciones",
     "/api/synthetic-v2/reposiciones",
     "/api/synthetic-v2/reposiciones",
   ]);
@@ -399,7 +411,7 @@ test("una falla en estrategias no bloquea la predicción ni la fecha", async () 
   ]);
 });
 
-test("tolera HTML antiguo sin selector de estrategia", async () => {
+test("tolera un formulario sin selector de estrategia", async () => {
   const {requests} = await reproducirInicializacionSinEstrategias({
     incluirSelector: false,
   });

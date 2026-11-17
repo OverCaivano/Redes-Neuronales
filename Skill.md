@@ -1,20 +1,31 @@
-Define las capacidades específicas que el agente sabe usar dentro de este entorno.
+# Flujos de desarrollo
 
-```markdown
-# Habilidades del Agente (Skill Set)
+## Validar datos sintéticos
 
-Este documento detalla las capacidades operativas del Agente IA y el procedimiento para ejecutarlas.
+Ejecutar el generador y las pruebas de esquema:
 
-## 🧰 Habilidades Principales
+```powershell
+.\venv\Scripts\python.exe -m src.datos_sinteticos --output-dir data\synthetic --seed 42
+.\venv\Scripts\python.exe -m pytest tests\test_datos_sinteticos.py -q
+```
 
-### 1. Data Preprocessing (`skill-data-prep`)
-- **Descripción:** Carga, limpia y normaliza los conjuntos de datos en `data/`.
-- **Uso:** Modificar los parámetros en `src/data_loader.py` y validar distribuciones.
+## Entrenar o evaluar el MLP
 
-### 2. Model Training & Tuning (`skill-model-train`)
-- **Descripción:** Entrena modelos de redes neuronales y optimiza hiperparámetros.
-- **Uso:** Invocar mediante `python src/train.py` especificando el tipo de arquitectura.
+El entrenamiento es una acción explícita. Usar una ruta de salida nueva para
+cada corrida; el pipeline conserva y rechaza sobrescribir los artefactos
+existentes.
 
-### 3. Automatic Documentation (`skill-auto-doc`)
-- **Descripción:** Actualiza `memoria.md` con las métricas finales de cada corrida y registra cambios en `comandos.md`.
-- **Uso:** El agente ejecuta esta habilidad al finalizar exitosamente un pipeline.
+```powershell
+.\venv\Scripts\python.exe -m src.pipeline_productos train
+.\venv\Scripts\python.exe -m src.pipeline_productos evaluate
+```
+
+## Validar aplicación y frontend
+
+```powershell
+.\venv\Scripts\python.exe -m pytest -q
+node --test tests\test_presentacion.js tests\test_app.js
+```
+
+La aplicación Flask debe leer solo el catálogo, inventario, checkpoint y
+reporte configurados para el pipeline sintético.

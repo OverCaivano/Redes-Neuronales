@@ -1,19 +1,5 @@
 "use strict";
 const presentacion = window.StockPredictPresentacion;
-const menu = document.getElementById("menu-toggle");
-const nav = document.getElementById("navegacion");
-if (menu && nav) {
-  menu.addEventListener("click", () => {
-    const abierto = nav.classList.toggle("abierto");
-    menu.setAttribute("aria-expanded", String(abierto));
-  });
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-      nav.classList.remove("abierto");
-      menu.setAttribute("aria-expanded", "false");
-    }
-  });
-}
 
 const form = document.getElementById("prediction-form");
 if (form) {
@@ -178,7 +164,9 @@ if (form) {
         document.getElementById("stock-minimo").textContent =
           Number(inventario.stock_minimo).toLocaleString("es-AR");
         document.getElementById("plazo-reposicion").textContent =
-          `${inventario.tiempo_reposicion} días`;
+          `${inventario.tiempo_reposicion} ${
+            inventario.tiempo_reposicion === 1 ? "día" : "días"
+          }`;
         document.getElementById("demanda-acumulada").textContent =
           `${Number(datos.demanda_acumulada).toLocaleString("es-AR", {
             maximumFractionDigits: 2,

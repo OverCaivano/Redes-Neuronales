@@ -13,3 +13,11 @@ select.form-control{appearance:none;padding-right:2.75rem;background-image:url("
 [data-theme=dark] .form-control option{background-color:#111827;color:#f1f5f9}
 [data-theme=dark] .form-control option:checked{background-color:#2563eb;color:#fff}
 .training-chart svg{width:100%;height:auto}
+.app-shell{min-height:100vh;display:flex;flex-direction:column}
+.app-header{display:flex;align-items:center;gap:1.5rem;padding:1rem clamp(1rem,4vw,3rem);border-bottom:1px solid var(--border-color);background-color:var(--header-bg);color:var(--text-primary)}
+.app-brand{display:flex;align-items:center;gap:.75rem;flex:0 0 auto}
+.app-description{flex:1;color:var(--text-secondary)}
+.app-main{flex:1;width:100%;padding:2rem clamp(1rem,4vw,3rem)}
+.app-content{width:min(100%,1440px);margin:0 auto}
+.app-footer{padding:1rem clamp(1rem,4vw,3rem);border-top:1px solid var(--border-color);color:var(--text-secondary);font-size:.75rem}
+@media(max-width:700px){.app-header{flex-wrap:wrap;gap:.75rem}.app-description{order:3;flex-basis:100%}.app-main{padding:1rem}}

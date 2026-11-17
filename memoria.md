@@ -1,30 +1,39 @@
-# Memoria Persistente del Agente IA
+# Estado técnico de StockPredict IA
 
-## 🧠 Estado Actual del Proyecto
-- **Fase actual:** Base funcional del pipeline de regresión.
-- **Entorno:** PyTorch, PyYAML y loaders para datos sintéticos o CSV.
+## Alcance
 
-## 📊 Registro de Experimentos e Interacciones
-- **[Fecha Inicial]:** Creación de la estructura del repositorio y especificación de documentos de control (`AGENT.md`, `Skill.md`, `comandos.md`).
-- **[2026-08-20]:** Se conectaron configuración, carga de datos, MLP, entrenamiento, evaluación y pruebas automatizadas.
+Prototipo académico para predecir ventas futuras de productos individuales
+por tienda. Ventas, catálogo e inventario son sintéticos y reproducibles.
+El panel cubre 3 tiendas, 30 productos y 127.440 filas entre 2023-01-01 y
+2026-11-16.
 
-## 📌 Notas para Próximas Tareas
-- Reemplazar los datos sintéticos por el dataset del proyecto en `data/raw/`.
-- Ajustar la arquitectura y la función de pérdida según el problema elegido.
-- Añadir métricas específicas y validación cruzada cuando se defina el caso de uso.
+## Componentes vigentes
 
-- **[2026-10-14]:** Bloque 1E-C: notebook Colab para Favorita completo, entorno aislado y sincronizacion verificada por epoca a Drive; recuperacion de generaciones integras. No se ejecuto entrenamiento completo.
+- `src/datos_sinteticos.py`: generación y validación de los tres CSV.
+- `src/pipeline_productos.py`: MLP PyTorch, partición cronológica,
+  entrenamiento, evaluación y reporte por época.
+- `src/application/`: contratos y servicios independientes de Flask/CSV.
+- `src/infrastructure/`: repositorios CSV/JSON y adaptador PyTorch.
+- `src/interfaces/web/controllers/`: Blueprints HTTP.
+- `src/composition.py`: ensamblado de dependencias y rutas de artefactos.
+- `src/web_app.py` y `web/`: aplicación Flask y presentación.
 
-- **[2026-10-28]:** Evaluador explicito Favorita sobre test interno, reutilizando best.pt v2 y transformaciones sin fit. Evaluador sintetico conservado. Resultados de evaluacion separados bajo runs/evaluaciones/.
+El pipeline conserva MAE/RMSE del MLP y el baseline, junto con métricas por
+época, en `runs/synthetic_product_sales_v1/metricas.json`. La evaluación se
+consulta por CLI; la web solo sirve la pantalla de predicción y reposición. La
+web no entrena al iniciar.
 
-- **[2026-10-28]:** Bloque B: consultas CLI de ventas diarias Favorita por tienda/familia/fecha, con checkpoint fijo y siete dias previos observados. No usa la venta objetivo, no reajusta ni entrena.
+## Arquitectura y patrones
 
-- **[2026-10-28]:** Bloque C: StockPredict IA local con Flask, plantillas adaptadas de los cinco HTML de Stitch y API que reutiliza las predicciones Favorita. Métricas e historial leídos de artefactos locales; sin acceso ni suposiciones sobre Drive.
+MVC y capas Controller–Service–Repository; inversión de dependencias con
+Protocol e inyección; Repository para fuentes CSV/JSON; Adapter para la
+inferencia PyTorch; Strategy para las reglas de reposición básica y con stock
+de seguridad. No se usan Singleton, Builder ni Chain of Responsibility porque
+no son necesarios para los casos de uso actuales.
 
-- **[2026-11-11]:** Revisión para la demostración: se corrigieron etiquetas de modelos, alcance de métricas de un paso frente al backtest recursivo, referencias desactualizadas a Drive y documentación inicial del boilerplate. Verificada la web local en escritorio y móvil; sin cambios a datasets ni checkpoints.
+## Reproducibilidad
 
-- **[2026-11-12]:** Presentación de predicciones: formato visual centralizado de unidades enteras y traducción española de las 33 familias; IDs y valores decimales de API conservados. Verificadas predicciones piloto/completa, pronóstico de siete días, 259 pruebas y formatos.
-
-- **[2026-11-12]:** Evaluación web reorganizada para priorizar el test diario del MLP completo y separar el backtest recursivo de validación y la evaluación piloto. Las métricas se leen de artefactos ligados por hash al checkpoint; se verificaron escritorio, móvil y ambos temas.
-
-- **[2026-11-12]:** Historial web reorganizado para priorizar el entrenamiento completo. Se verifican manifiesto, configuración, resumen y CSV de 20 épocas; optimizador y pérdida se dejan sin atribuir porque no están archivados. El piloto queda secundario. 262 pruebas, prueba visual escritorio/móvil y ambos temas.
+Consultar `README.md`, `comandos.md` y `data/synthetic/README.md` para
+instalación, generación, entrenamiento, evaluación y pruebas. Los CSV y los
+artefactos de entrenamiento generados están ignorados por Git. No reemplazar
+una corrida existente.

@@ -18,7 +18,7 @@ from src.infrastructure.repositories.csv_product_repository import (
     RepositorioProductosCSV,
 )
 from src.predecir_producto import predecir_venta
-from src.web_app import PAGINAS, crear_app
+from src.web_app import crear_app
 
 
 FECHA_CORTE = date(2026, 11, 16)
@@ -93,19 +93,36 @@ def cliente():
     return app.test_client()
 
 
-def test_paginas_y_navegacion_no_muestran_contenido_heredado(cliente):
-    for pagina in PAGINAS:
-        respuesta = cliente.get("/" if pagina == "inicio" else f"/{pagina}")
-        assert respuesta.status_code == 200
-        texto = respuesta.get_data(as_text=True)
-        assert "StockPredict IA" in texto
-        assert "datos sintéticos" in texto.lower()
-        assert "Favorita" not in texto
-        for enlace in PAGINAS:
-            assert f'href="/{enlace}"' in texto
-    for pagina in ("evaluacion", "historial"):
-        respuesta = cliente.get(f"/{pagina}")
-        assert "Vista temporalmente deshabilitada" in respuesta.get_data(as_text=True)
+def test_raiz_es_la_unica_pantalla_y_contiene_el_formulario(cliente):
+    respuesta = cliente.get("/")
+    assert respuesta.status_code == 200
+    texto = respuesta.get_data(as_text=True)
+    assert "StockPredict IA" in texto
+    assert "Datos sintéticos" in texto
+    for elemento in (
+        'id="prediction-form"',
+        'id="store-select"',
+        'id="product-select"',
+        'id="date-input"',
+        'id="strategy-select"',
+        'id="btn-predict"',
+        'id="resultado"',
+    ):
+        assert elemento in texto
+    assert "<nav" not in texto
+    assert 'href="/inicio"' not in texto
+    assert 'href="/predicciones"' not in texto
+
+
+def test_rutas_de_paginas_informativas_fueron_eliminadas(cliente):
+    for ruta in (
+        "/inicio",
+        "/predicciones",
+        "/evaluacion",
+        "/historial",
+        "/acerca",
+    ):
+        assert cliente.get(ruta).status_code == 404
 
 
 def test_opciones_catalogo_y_prediccion_por_la_nueva_api(cliente):
@@ -306,16 +323,12 @@ def test_catalogo_invalido_responde_503_sin_ocultar_el_inicio(tmp_path):
 
 
 def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
-    pagina = cliente.get("/predicciones").get_data(as_text=True)
+    pagina = cliente.get("/").get_data(as_text=True)
     assert 'id="store-select"' in pagina
     assert 'id="product-select"' in pagina
     assert 'id="date-input"' in pagina
     assert 'id="strategy-select"' in pagina
-    assert 'id="model-select"' not in pagina
-    assert 'id="forecast-form"' not in pagina
-    assert 'id="forecast-origin"' not in pagina
     assert "familia" not in pagina.lower()
-    assert "Favorita" not in pagina
 
     javascript = cliente.get("/static/app.js").get_data(as_text=True)
     assert 'fetch("/api/synthetic-v2/opciones")' in javascript
@@ -329,8 +342,10 @@ def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
     assert "/api/opciones?" not in javascript
 
     presentacion = cliente.get("/static/presentacion.js").get_data(as_text=True)
-    assert "BEAUTY" not in presentacion
     assert "nombreFamilia" not in presentacion
+
+    assert "menu-toggle" not in javascript
+    assert "navegacion" not in javascript
 
 
 def test_activos_y_cabeceras(cliente):
@@ -364,8 +379,10 @@ def test_prediccion_web_usa_el_checkpoint_real_y_no_un_valor_fijo():
     cliente_real = app.test_client()
     opciones = cliente_real.get("/api/synthetic-v2/opciones")
     assert opciones.status_code == 200
+    assert opciones.json["tiendas"] == [1, 2, 3]
     catalogo = cliente_real.get("/api/synthetic-v2/productos")
     assert catalogo.status_code == 200
+    assert len(catalogo.json["productos"]) == 30
     producto = next(p for p in catalogo.json["productos"] if p["producto_id"] == "BEB-002")
     fecha = "2026-11-25"
     consulta = {"tienda_id": 2, "producto_id": producto["producto_id"], "fecha": fecha}

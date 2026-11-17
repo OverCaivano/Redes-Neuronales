@@ -1,15 +1,18 @@
-# Contexto y Configuración del Agente IA
+# Guía de trabajo del repositorio
 
-## 🤖 Rol del Agente
-El agente actúa como un **DevOps y ML Engineer Autónomo** dentro del repositorio. Su propósito es ejecutar pipelines de entrenamiento, dar seguimiento al rendimiento de los modelos, gestionar dependencias y mantener la documentación actualizada.
+StockPredict IA es un prototipo Python/PyTorch/Flask de pronósticos por
+producto y tienda. El dataset, el catálogo y el inventario son sintéticos.
 
-## 🎯 Objetivos del Agente
-- Ejecutar pruebas automáticas en el código del modelo.
-- Monitorear métricas de entrenamiento (loss, accuracy, F1-score).
-- Documentar avances y decisiones arquitectónicas en `memoria.md`.
-- Mantener la integridad de los scripts en `src/`.
+## Reglas del proyecto
 
-## ⚠️ Reglas de Operación
-1. No modificar el dataset original ubicado en `data/raw/`.
-2. Registrar cualquier cambio estructural o nuevo comando en `comandos.md`.
-3. Consultar siempre `memoria.md` antes de iniciar una nueva tarea.
+- Antes de modificar, revisar el código y las pruebas relacionadas.
+- Mantener dominio, servicios, repositorios, adaptadores y controladores
+  separados; inyectar dependencias mediante los contratos existentes.
+- No entrenar ni reemplazar checkpoints al iniciar la aplicación web.
+- No interpretar datos o resultados sintéticos como ventas o existencias reales.
+- No sobrescribir una carpeta de corrida existente.
+- Actualizar `README.md` y `comandos.md` cuando cambien los comandos o la
+  arquitectura.
+- Ejecutar pruebas específicas del cambio y `git diff --check`.
+
+Los comandos vigentes están en [comandos.md](./comandos.md).

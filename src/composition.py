@@ -1,4 +1,4 @@
-"""Raíz de composición para ensamblar las implementaciones del Bloque 3."""
+"""Raíz de composición para ensamblar implementaciones e inyectar dependencias."""
 
 from pathlib import Path
 

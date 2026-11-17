@@ -22,13 +22,6 @@ from src.interfaces.web.controllers.replenishment_controller import (
 
 
 RAIZ = Path(__file__).resolve().parents[1]
-PAGINAS = {
-    "inicio": "Inicio",
-    "predicciones": "Predicciones",
-    "evaluacion": "Evaluación",
-    "historial": "Historial",
-    "acerca": "Acerca del proyecto",
-}
 
 
 def crear_app(
@@ -78,20 +71,10 @@ def crear_app(
         return respuesta
 
     @app.get("/")
-    @app.get("/<pagina>")
-    def pagina_web(pagina="inicio"):
-        if pagina not in PAGINAS:
-            return render_template(
-                "error.html",
-                titulo="Página no encontrada",
-                pagina="",
-                paginas=PAGINAS,
-            ), 404
+    def pagina_principal():
         return render_template(
-            pagina + ".html",
-            pagina=pagina,
-            titulo=PAGINAS[pagina],
-            paginas=PAGINAS,
+            "index.html",
+            titulo="Predicción y reposición",
         )
 
     @app.errorhandler(HTTPException)
@@ -101,8 +84,6 @@ def crear_app(
         return render_template(
             "error.html",
             titulo="Solicitud no admitida",
-            pagina="",
-            paginas=PAGINAS,
         ), error.code
 
     return app

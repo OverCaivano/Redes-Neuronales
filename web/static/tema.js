@@ -4,7 +4,7 @@ const claveTema = "stockpredict-theme";
 const temaGuardado = localStorage.getItem(claveTema);
 const temaInicial = temaGuardado === "light" || temaGuardado === "dark"
   ? temaGuardado
-  : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  : "dark";
 
 document.documentElement.dataset.theme = temaInicial;
 

@@ -29,6 +29,15 @@ los datos y checkpoint guardados:
 .\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 ```
 
+## Versiones verificadas
+
+El proyecto requiere Python 3.13. `requirements.txt` fija PyTorch 2.15.0,
+NumPy 2.5.5, pandas 3.1.1 y pytest 9.2.0; `requirements-web.txt` fija Flask
+3.1.3. Estas versiones corresponden a la instalación limpia de Windows/Python
+3.13 verificada para el proyecto. El entorno local previo tenía PyTorch
+2.13.0+cpu, NumPy 2.5.2, pandas 3.0.5 y pytest 9.1.1; se conserva sin cambios.
+Los requisitos fijan dependencias directas, no todas las transitivas.
+
 Si falta el dataset sintético, el generador produce 127.440 filas de ventas
 diarias del `2023-01-01` al `2026-11-16`, un catálogo de 30 productos y un
 inventario sintético separado. Los CSV generados y los artefactos de

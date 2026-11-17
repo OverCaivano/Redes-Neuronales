@@ -95,8 +95,8 @@ def separar_por_fecha(ventas):
 
 def _caracteristicas_temporales(fechas):
     fechas = pd.to_datetime(fechas, errors="raise")
-    dia_semana = fechas.dt.dayofweek.to_numpy(dtype=np.float64)
-    dia_anio = fechas.dt.dayofyear.to_numpy(dtype=np.float64) - 1
+    dia_semana = fechas.dt.day_of_week.to_numpy(dtype=np.float64)
+    dia_anio = fechas.dt.day_of_year.to_numpy(dtype=np.float64) - 1
     dias_del_anio = np.where(fechas.dt.is_leap_year.to_numpy(), 366.0, 365.0)
     angulo_semana = 2 * np.pi * dia_semana / 7
     angulo_anio = 2 * np.pi * dia_anio / dias_del_anio

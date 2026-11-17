@@ -225,7 +225,7 @@ def generar_ventas_sinteticas(semilla=SEMILLA_PREDETERMINADA):
         {producto_id: indice for indice, producto_id in enumerate(catalogo["producto_id"])}
     ).to_numpy()
     indices_categoria = pd.Index(CATEGORIAS).get_indexer(categorias)[indices_producto]
-    dias_semana = ventas["fecha"].dt.dayofweek.to_numpy()
+    dias_semana = ventas["fecha"].dt.day_of_week.to_numpy()
     meses = ventas["fecha"].dt.month.to_numpy() - 1
     tiendas = ventas["tienda_id"].to_numpy()
 

@@ -2,18 +2,18 @@
 {% block contenido %}
 <header class="mb-space-lg">
   <p class="text-primary text-label-sm mb-2 uppercase tracking-wider">StockPredict IA · modelo sintético</p>
-  <h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Predicción por producto individual</h1>
-  <p class="text-on-surface-variant mt-2">El modelo estima unidades vendidas para una tienda, un producto y una fecha actual o futura.</p>
+  <h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Predicción y reposición por producto</h1>
+  <p class="text-on-surface-variant mt-2">El modelo estima la demanda para una fecha y calcula una recomendación durante el plazo de reposición.</p>
 </header>
 
 <div class="notice mb-space-lg">
   <strong>Alcance y supuestos</strong>
-  <p>El dataset es sintético y termina el 16/11/2026. La predicción usa identificadores y características temporales; no usa ventas del día objetivo, rezagos, precio ni promoción.</p>
+  <p>Los datos son sintéticos y terminan el 16/11/2026. La cobertura comprende los próximos N días desde la fecha seleccionada, incluyendo ese día. No se usan ventas del día objetivo, rezagos, precio ni promoción.</p>
 </div>
 
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
   <section class="xl:col-span-7 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
-    <h2 class="text-headline-md mb-4">Parámetros de la predicción</h2>
+    <h2 class="text-headline-md mb-4">Parámetros de predicción y reposición</h2>
     {% include "formulario.html" %}
   </section>
   <section class="xl:col-span-5 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">

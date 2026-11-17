@@ -1,10 +1,11 @@
 """Orquestación del caso de uso de predicción por producto."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from numbers import Integral
 from typing import Callable
 
 from src.application.ports import MotorPrediccion, RepositorioProductos
+from src.application.date_validation import parsear_fecha
 from src.domain.exceptions import (
     ProductoNoEncontrado,
     SolicitudPrediccionInvalida,
@@ -85,24 +86,4 @@ class ServicioPrediccion:
 
     @staticmethod
     def _parsear_fecha(fecha):
-        if isinstance(fecha, datetime):
-            raise SolicitudPrediccionInvalida(
-                "fecha debe ser válida y tener el formato AAAA-MM-DD"
-            )
-        if isinstance(fecha, date):
-            return fecha
-        if not isinstance(fecha, str):
-            raise SolicitudPrediccionInvalida(
-                "fecha debe tener el formato AAAA-MM-DD"
-            )
-        try:
-            dia = datetime.strptime(fecha, "%Y-%m-%d")
-        except ValueError:
-            raise SolicitudPrediccionInvalida(
-                "fecha debe ser válida y tener el formato AAAA-MM-DD"
-            ) from None
-        if dia.strftime("%Y-%m-%d") != fecha:
-            raise SolicitudPrediccionInvalida(
-                "fecha debe ser válida y tener el formato AAAA-MM-DD"
-            )
-        return dia.date()
+        return parsear_fecha(fecha)

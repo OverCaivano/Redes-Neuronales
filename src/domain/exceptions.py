@@ -13,6 +13,18 @@ class ErrorCatalogo(RuntimeError):
     """El catálogo sintético no está disponible o no es válido."""
 
 
+class InventarioNoEncontrado(LookupError):
+    """No existe una fila de inventario para la tienda y producto."""
+
+
+class ErrorInventario(RuntimeError):
+    """El inventario sintético no está disponible o no es válido."""
+
+
+class EstrategiaReposicionNoEncontrada(ValueError):
+    """La estrategia de reposición no está registrada."""
+
+
 class TiendaNoEncontrada(LookupError):
     """El modelo no tiene datos para la tienda solicitada."""
 

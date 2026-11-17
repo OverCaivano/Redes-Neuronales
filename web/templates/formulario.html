@@ -11,8 +11,12 @@
     <label class="font-label-lg" for="date-input">Fecha actual o futura</label>
     <input class="form-control font-body-md text-body-md" disabled="" id="date-input" required="" type="date"/>
   </div>
+  <div class="flex flex-col gap-2">
+    <label class="font-label-lg" for="strategy-select">Estrategia de reposición</label>
+    <select class="form-control font-body-md text-body-md" disabled="" id="strategy-select" required=""><option value="">Cargando estrategias…</option></select>
+  </div>
   <p class="text-body-sm text-on-surface-variant" id="rango-fechas"></p>
   <div class="flex flex-wrap gap-3">
-    <button class="primary-button" disabled="" id="btn-predict" type="submit">Generar predicción</button>
+    <button class="primary-button" disabled="" id="btn-predict" type="submit">Predecir y calcular reposición</button>
   </div>
 </form>

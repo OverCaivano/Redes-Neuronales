@@ -1,8 +1,23 @@
 <div id="consulta-estado" role="status" aria-live="polite">Cargando opciones sintéticas…</div>
 <div id="resultado" hidden>
-  <p class="text-label-md text-on-surface-variant">Unidades estimadas</p>
+  <p class="text-label-md text-on-surface-variant">Predicción para la fecha seleccionada</p>
   <p class="text-metric-display text-primary my-4" id="ventas-estimadas"></p>
   <p id="resultado-contexto"></p>
   <p class="text-body-sm mt-4" id="resultado-modelo"></p>
+  <div id="resultado-reposicion" hidden>
+    <div class="grid grid-cols-2 gap-space-sm mt-space-md">
+      <div class="notice"><span class="eyebrow">Stock disponible</span><p class="metric" id="stock-actual"></p></div>
+      <div class="notice"><span class="eyebrow">Stock mínimo</span><p class="metric" id="stock-minimo"></p></div>
+      <div class="notice"><span class="eyebrow">Plazo de reposición</span><p class="metric" id="plazo-reposicion"></p></div>
+      <div class="notice"><span class="eyebrow">Demanda del período</span><p class="metric" id="demanda-acumulada"></p></div>
+    </div>
+    <p class="text-body-sm mt-space-md" id="periodo-cobertura"></p>
+    <p class="text-body-sm mt-space-sm" id="estrategia-reposicion"></p>
+    <div class="card mt-space-md">
+      <p class="eyebrow">Cantidad recomendada para reponer</p>
+      <p class="text-metric-display text-primary my-2" id="cantidad-recomendada"></p>
+      <p class="notice" id="mensaje-reposicion" role="status"></p>
+    </div>
+  </div>
 </div>
-<p class="notice mt-6">Estimación basada en datos sintéticos. No representa stock disponible ni una recomendación de compra.</p>
+<p class="notice mt-6">Datos e inventario sintéticos. La recomendación no modifica existencias ni realiza una compra.</p>

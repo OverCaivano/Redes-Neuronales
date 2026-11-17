@@ -68,7 +68,7 @@ Favorita. Cada corrida requiere una carpeta de salida nueva para evitar
 sobrescribir checkpoints previos. Los datos y las métricas son sintéticos y
 solo sirven para validar el pipeline; no demuestran precisión en ventas reales.
 
-## Aplicación web (Bloques 3 y 4)
+## Aplicación web (Bloques 3–5)
 
 La lógica nueva está separada en dominio, contratos y servicios de aplicación,
 repositorio CSV, adaptador PyTorch y controlador Flask. El Blueprint se crea
@@ -78,3 +78,17 @@ flujo sintético y envía la tienda, el producto y la fecha futura al Blueprint.
 El servicio recibe el repositorio y el motor por inyección; no depende de
 Flask, CSV ni PyTorch. Las rutas web anteriores de Favorita ya no están
 registradas; sus módulos se conservan para la limpieza final.
+
+## Recomendación de reposición (Bloque 5)
+
+La pantalla permite elegir `Reposición básica` o `Reposición con stock de
+seguridad`. El servicio pronostica cada día de los próximos N días desde la
+fecha seleccionada, incluyendo esa fecha, donde N es `tiempo_reposicion`.
+La estrategia básica cubre la demanda prevista menos el stock disponible; la
+estrategia con seguridad agrega `stock_minimo` como colchón. Las cantidades se
+redondean hacia arriba y nunca son negativas. El sistema solo muestra una
+recomendación: no modifica el CSV, no registra movimientos y no efectúa compras.
+
+El endpoint `POST /api/synthetic-v2/reposiciones` recibe
+`tienda_id`, `producto_id`, `fecha` y `estrategia`. Tanto las ventas como el
+inventario son sintéticos y no deben interpretarse como datos operativos reales.

@@ -9,10 +9,15 @@ from werkzeug.exceptions import HTTPException
 from src.composition import (
     RUTA_CATALOGO,
     RUTA_CHECKPOINT,
+    RUTA_INVENTARIO,
+    crear_servicio_reposicion,
     crear_servicio_prediccion,
 )
 from src.interfaces.web.controllers.prediction_controller import (
     crear_blueprint_prediccion,
+)
+from src.interfaces.web.controllers.replenishment_controller import (
+    crear_blueprint_reposicion,
 )
 
 
@@ -31,6 +36,8 @@ def crear_app(
     *,
     ruta_catalogo=RUTA_CATALOGO,
     ruta_checkpoint=RUTA_CHECKPOINT,
+    servicio_reposicion=None,
+    ruta_inventario=RUTA_INVENTARIO,
 ):
     app = Flask(
         __name__,
@@ -46,8 +53,15 @@ def crear_app(
             ruta_catalogo,
             ruta_checkpoint,
         )
+    if servicio_reposicion is None:
+        servicio_reposicion = crear_servicio_reposicion(
+            servicio_prediccion,
+            ruta_inventario,
+        )
     app.extensions["servicio_prediccion"] = servicio_prediccion
+    app.extensions["servicio_reposicion"] = servicio_reposicion
     app.register_blueprint(crear_blueprint_prediccion(servicio_prediccion))
+    app.register_blueprint(crear_blueprint_reposicion(servicio_reposicion))
 
     @app.after_request
     def cabeceras(respuesta):

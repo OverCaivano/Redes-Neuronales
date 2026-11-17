@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Protocol
 
-from src.domain.models import Producto
+from src.domain.models import Inventario, Prediccion, Producto
 
 
 class RepositorioProductos(Protocol):
@@ -26,4 +26,26 @@ class MotorPrediccion(Protocol):
     def predecir(
         self, *, tienda_id: int, producto_id: str, fecha: date
     ) -> float:
+        ...
+
+
+class RepositorioInventario(Protocol):
+    def buscar(self, *, tienda_id: int, producto_id: str) -> Inventario | None:
+        ...
+
+
+class PronosticadorVentas(Protocol):
+    def predecir(
+        self, *, tienda_id: int, producto_id: str, fecha: date | str
+    ) -> Prediccion:
+        ...
+
+
+class EstrategiaReposicion(Protocol):
+    codigo: str
+    nombre: str
+
+    def calcular(
+        self, demanda_acumulada: float, inventario: Inventario
+    ) -> int:
         ...

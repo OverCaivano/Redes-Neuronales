@@ -1,10 +1,16 @@
 from datetime import date
+import math
 
 import pytest
 
 from src.application.services.prediction_service import ServicioPrediccion
-from src.composition import RUTA_CATALOGO, RUTA_CHECKPOINT
-from src.domain.models import Producto
+from src.application.replenishment_strategies import (
+    ReposicionBasica,
+    ReposicionConSeguridad,
+)
+from src.application.services.replenishment_service import ServicioReposicion
+from src.composition import RUTA_CATALOGO, RUTA_CHECKPOINT, RUTA_INVENTARIO
+from src.domain.models import Inventario, Producto
 from src.infrastructure.ml.pytorch_prediction_adapter import (
     AdaptadorPrediccionPyTorch,
 )
@@ -48,6 +54,24 @@ class MotorFalso:
         return 12.75
 
 
+class InventarioEnMemoria:
+    def __init__(self):
+        self.registros = {
+            (tienda_id, producto_id): Inventario(
+                tienda_id=tienda_id,
+                producto_id=producto_id,
+                stock_actual=20,
+                stock_minimo=4,
+                tiempo_reposicion=3,
+            )
+            for tienda_id in (1, 2, 3)
+            for producto_id in ("BEB-001", "LAC-001")
+        }
+
+    def buscar(self, *, tienda_id, producto_id):
+        return self.registros.get((tienda_id, producto_id))
+
+
 @pytest.fixture
 def cliente():
     servicio = ServicioPrediccion(
@@ -55,7 +79,16 @@ def cliente():
         MotorFalso(),
         hoy=lambda: FECHA_ACTUAL,
     )
-    app = crear_app(servicio_prediccion=servicio)
+    estrategias = (ReposicionBasica(), ReposicionConSeguridad())
+    servicio_reposicion = ServicioReposicion(
+        InventarioEnMemoria(),
+        servicio,
+        {estrategia.codigo: estrategia for estrategia in estrategias},
+    )
+    app = crear_app(
+        servicio_prediccion=servicio,
+        servicio_reposicion=servicio_reposicion,
+    )
     app.config["TESTING"] = True
     return app.test_client()
 
@@ -107,6 +140,81 @@ def test_opciones_catalogo_y_prediccion_por_la_nueva_api(cliente):
     assert resultado.json["fecha"] == "2026-11-17"
     assert resultado.json["unidades_estimadas"] == 12.75
     assert resultado.json["datos_sinteticos"] is True
+
+
+def test_endpoint_recomendacion_de_reposicion_y_contrato_json(cliente):
+    estrategias = cliente.get("/api/synthetic-v2/reposicion/estrategias")
+    assert estrategias.status_code == 200
+    assert estrategias.json["estrategias"] == [
+        {"codigo": "basica", "nombre": "Reposición básica"},
+        {"codigo": "seguridad", "nombre": "Reposición con stock de seguridad"},
+    ]
+
+    respuesta = cliente.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-001",
+            "fecha": "2026-11-25",
+            "estrategia": "seguridad",
+        },
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json["datos_sinteticos"] is True
+    assert respuesta.json["tienda_id"] == 2
+    assert respuesta.json["producto"]["producto_id"] == "BEB-001"
+    assert respuesta.json["demanda_fecha_seleccionada"] == 12.75
+    assert respuesta.json["inventario"] == {
+        "stock_actual": 20,
+        "stock_minimo": 4,
+        "tiempo_reposicion": 3,
+    }
+    assert respuesta.json["periodo_cobertura"] == {
+        "desde": "2026-11-25",
+        "hasta": "2026-11-27",
+        "dias": 3,
+    }
+    assert respuesta.json["demanda_acumulada"] == 38.25
+    assert [item["fecha"] for item in respuesta.json["demanda_diaria"]] == [
+        "2026-11-25",
+        "2026-11-26",
+        "2026-11-27",
+    ]
+    assert respuesta.json["estrategia"]["codigo"] == "seguridad"
+    assert respuesta.json["cantidad_recomendada"] == 23
+    assert respuesta.json["requiere_reposicion"] is True
+
+
+@pytest.mark.parametrize(
+    "datos,estado",
+    [
+        (
+            {
+                "tienda_id": 2,
+                "producto_id": "BEB-001",
+                "fecha": "2026-11-25",
+                "estrategia": "desconocida",
+            },
+            400,
+        ),
+        (
+            {
+                "tienda_id": 2,
+                "producto_id": "BEB-001",
+                "fecha": "2026-11-25",
+            },
+            400,
+        ),
+    ],
+)
+def test_endpoint_reposicion_rechaza_estrategias_y_payload_invalidos(
+    cliente, datos, estado
+):
+    respuesta = cliente.post("/api/synthetic-v2/reposiciones", json=datos)
+
+    assert respuesta.status_code == estado
+    assert "error" in respuesta.json
 
 
 @pytest.mark.parametrize(
@@ -202,6 +310,7 @@ def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
     assert 'id="store-select"' in pagina
     assert 'id="product-select"' in pagina
     assert 'id="date-input"' in pagina
+    assert 'id="strategy-select"' in pagina
     assert 'id="model-select"' not in pagina
     assert 'id="forecast-form"' not in pagina
     assert 'id="forecast-origin"' not in pagina
@@ -211,8 +320,11 @@ def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
     javascript = cliente.get("/static/app.js").get_data(as_text=True)
     assert 'fetch("/api/synthetic-v2/opciones")' in javascript
     assert 'fetch("/api/synthetic-v2/productos")' in javascript
-    assert 'fetch("/api/synthetic-v2/predicciones"' in javascript
+    assert '"/api/synthetic-v2/reposicion/estrategias"' in javascript
+    assert '"/api/synthetic-v2/reposiciones"' in javascript
+    assert '"/api/synthetic-v2/predicciones"' in javascript
     assert "producto_id: producto.value" in javascript
+    assert "solicitud.estrategia = estrategia.value" in javascript
     assert "/api/pronosticos" not in javascript
     assert "/api/opciones?" not in javascript
 
@@ -236,8 +348,12 @@ def test_activos_y_cabeceras(cliente):
 
 
 def test_prediccion_web_usa_el_checkpoint_real_y_no_un_valor_fijo():
-    if not RUTA_CATALOGO.is_file() or not RUTA_CHECKPOINT.is_file():
-        pytest.skip("Se requiere el catálogo y checkpoint sintéticos locales.")
+    if (
+        not RUTA_CATALOGO.is_file()
+        or not RUTA_CHECKPOINT.is_file()
+        or not RUTA_INVENTARIO.is_file()
+    ):
+        pytest.skip("Se requieren los datos y el checkpoint sintéticos locales.")
     servicio = ServicioPrediccion(
         RepositorioProductosCSV(RUTA_CATALOGO),
         AdaptadorPrediccionPyTorch(RUTA_CHECKPOINT),
@@ -266,3 +382,63 @@ def test_prediccion_web_usa_el_checkpoint_real_y_no_un_valor_fijo():
     assert respuesta.json["unidades_estimadas"] == prediccion_directa["unidades_estimadas"]
     assert isinstance(respuesta.json["unidades_estimadas"], float)
     assert respuesta.json["datos_sinteticos"] is True
+
+    recomendacion = cliente_real.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-002",
+            "fecha": "2026-11-25",
+            "estrategia": "basica",
+        },
+    )
+    assert recomendacion.status_code == 200
+    datos = recomendacion.get_json()
+    assert datos["producto"]["producto_id"] == "BEB-002"
+    assert datos["tienda_id"] == 2
+    assert datos["periodo_cobertura"]["desde"] == "2026-11-25"
+    assert datos["periodo_cobertura"]["dias"] == datos["inventario"]["tiempo_reposicion"]
+    assert len(datos["demanda_diaria"]) == datos["inventario"]["tiempo_reposicion"]
+    assert isinstance(datos["demanda_acumulada"], float)
+    assert isinstance(datos["cantidad_recomendada"], int)
+    pronosticos_esperados = [
+        servicio.predecir(
+            tienda_id=2,
+            producto_id="BEB-002",
+            fecha=item["fecha"],
+        ).unidades_estimadas
+        for item in datos["demanda_diaria"]
+    ]
+    assert [
+        item["unidades_estimadas"] for item in datos["demanda_diaria"]
+    ] == pronosticos_esperados
+    assert datos["demanda_fecha_seleccionada"] == pronosticos_esperados[0]
+    assert math.isclose(datos["demanda_acumulada"], math.fsum(pronosticos_esperados))
+    assert datos["cantidad_recomendada"] == math.ceil(
+        max(
+            0,
+            datos["demanda_acumulada"] - datos["inventario"]["stock_actual"],
+        )
+    )
+
+    recomendacion_seguridad = cliente_real.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 1,
+            "producto_id": "BEB-001",
+            "fecha": "2026-11-25",
+            "estrategia": "seguridad",
+        },
+    )
+    assert recomendacion_seguridad.status_code == 200
+    datos_seguridad = recomendacion_seguridad.get_json()
+    cantidad_esperada = math.ceil(
+        max(
+            0,
+            datos_seguridad["demanda_acumulada"]
+            + datos_seguridad["inventario"]["stock_minimo"]
+            - datos_seguridad["inventario"]["stock_actual"],
+        )
+    )
+    assert datos_seguridad["cantidad_recomendada"] == cantidad_esperada
+    assert cantidad_esperada > 0

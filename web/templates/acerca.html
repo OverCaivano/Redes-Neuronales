@@ -19,7 +19,7 @@
   <aside class="card lg:col-span-4">
     <h2>Arquitectura</h2>
     <p>Controlador Flask → servicio de aplicación → repositorio de productos y adaptador del modelo.</p>
-    <p class="notice mt-4">No calcula inventario, pedidos sugeridos ni intervalos de confianza.</p>
+    <p class="notice mt-4">El inventario es sintético; no se generan compras ni movimientos de existencias.</p>
   </aside>
 </section>
 <section class="flex flex-col gap-space-md">
@@ -27,7 +27,7 @@
   <div class="grid md:grid-cols-3 gap-4">
     <article class="card"><h3>Inferencia</h3><p>Usa un checkpoint sintético local. La web no entrena ni sobrescribe modelos.</p></article>
     <article class="card"><h3>Variables</h3><p>No se suministran precio ni promoción; la predicción no está condicionada por esos valores.</p></article>
-    <article class="card"><h3>Limitación</h3><p>Los datos no representan ventas reales y no demuestran precisión comercial.</p></article>
+    <article class="card"><h3>Limitación</h3><p>Las ventas y existencias no son reales ni demuestran precisión comercial.</p></article>
   </div>
 </section>
 {% endblock %}

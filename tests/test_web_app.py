@@ -1,442 +1,268 @@
-"""API e interfaz con checkpoint pequeño sin entrenamiento ni datasets reales."""
-
-import json
-import shutil
-from pathlib import Path
+from datetime import date
 
 import pytest
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from test_evaluacion_favorita import checkpoint
-from src.reanudacion import huella_dataset
-from src.sincronizacion import ARCHIVOS as ARCHIVOS_CORRIDA
-from src.web_app import ServicioPiloto, crear_app
+from src.application.services.prediction_service import ServicioPrediccion
+from src.composition import RUTA_CATALOGO, RUTA_CHECKPOINT
+from src.domain.models import Producto
+from src.infrastructure.ml.pytorch_prediction_adapter import (
+    AdaptadorPrediccionPyTorch,
+)
+from src.infrastructure.repositories.csv_product_repository import (
+    RepositorioProductosCSV,
+)
+from src.predecir_producto import predecir_venta
+from src.web_app import PAGINAS, crear_app
 
 
-@pytest.fixture
-def servicio(checkpoint, tmp_path):
-    ruta, csv, _ = checkpoint
-    raiz = tmp_path / "proyecto"
-    destino = raiz / "runs/favorita_subconjunto_reanudado_4"
-    destino.mkdir(parents=True)
-    completo = raiz / "runs/favorita_completa_20"
-    completo.mkdir(parents=True)
-    (raiz / "data/raw").mkdir(parents=True)
-    shutil.copyfile(ruta, destino / "best.pt")
-    shutil.copyfile(ruta, completo / "best.pt")
-    shutil.copyfile(ruta, completo / "last.pt")
-    shutil.copyfile(csv, raiz / "data/raw/train.csv")
-    promociones = ["date,store_nbr,family,onpromotion"]
-    promociones.extend(
-        f"2017-08-{dia:02d},1,BEAUTY,{cantidad}"
-        for dia, cantidad in zip(range(16, 23), (2, 1, 1, 1, 1, 1, 0))
-    )
-    (raiz / "data/raw/test.csv").write_text("\n".join(promociones) + "\n", encoding="utf-8")
-    resumen = {"epocas_completadas": 2, "mejor_epoca": 2, "mejor_val_mae": 1., "mejor_val_rmse": 2.,
-               "input_dim": 10, "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
-               "ruta_privada": "C:/secret/modelo.pt"}
-    (destino / "resumen.json").write_text(json.dumps(resumen))
-    cabecera = (
-        "epoca,train_mse,train_mae,train_rmse,val_mse,val_mae,val_rmse,"
-        "baseline_mae,baseline_rmse,n_train,n_validacion,learning_rate,segundos_epoca\n"
-    )
-    (destino / "metricas.csv").write_text(
-        cabecera + "1,4,2,3,9,2,3,2,3,8,30,0.001,1.5\n"
-        "2,3,1,2,4,1.5,2,2,3,8,30,0.001,1.6\n"
-    )
-    evaluacion = raiz / "runs/evaluaciones/favorita_piloto_test"
-    evaluacion.mkdir(parents=True)
-    (evaluacion / "evaluacion.json").write_text(json.dumps({
-        "checkpoint_sha256": huella_dataset(ruta), "checkpoint": "C:/secret/modelo.pt",
-        "mlp": {"mae": 1., "rmse": 2., "n": 31}, "baseline_semanal": {"mae": 2., "rmse": 3., "n": 31},
-        "fecha_min": "2017-07-16", "fecha_max": "2017-08-15",
-        "epoca_seleccionada_por_validacion": 2, "particion": "test_interno",
-        "protocolo": "diario_a_un_paso_historia_observada_hasta_t-1",
-        "tiendas": [1], "familias": ["BEAUTY"]}))
-    hash_datos = huella_dataset(raiz / "data/raw/train.csv")
-    hash_completo = huella_dataset(completo / "best.pt")
-    (completo / "resumen.json").write_text(json.dumps({
-        "epocas_completadas": 2, "mejor_epoca": 2, "input_dim": 10,
-        "mejor_val_mae": 1.5, "mejor_val_rmse": 2., "dataset_sha256": hash_datos,
-        "filas_por_particion": {"entrenamiento": 8, "validacion": 30, "test": 31},
-        "periodos": {
-            "entrenamiento": ["2017-06-01", "2017-06-15"],
-            "validacion": ["2017-06-16", "2017-07-15"],
-            "test": ["2017-07-16", "2017-08-15"],
-        },
-    }))
-    (completo / "configuracion.yaml").write_text(
-        "seed: 42\ndevice: cpu\nmodel:\n  input_dim: 10\n  hidden_dim: 4\n  output_dim: 1\n"
-        "training:\n  epochs: 2\n  batch_size: 7\n  learning_rate: 0.001\n  num_workers: 0\n",
-        encoding="utf-8",
-    )
-    (completo / "metricas.csv").write_text(
-        cabecera + "1,4,2,3,9,2,3,2,3,8,30,0.001,1.5\n"
-        "2,3,1,2,4,1.5,2,2,3,8,30,0.001,1.6\n"
-    )
-    archivos = {}
-    for nombre in ARCHIVOS_CORRIDA:
-        ruta_archivo = completo / nombre
-        archivos[nombre] = {"bytes": ruta_archivo.stat().st_size, "sha256": huella_dataset(ruta_archivo)}
-    manifiesto_path = completo / "manifiesto.json"
-    manifiesto_path.write_text(json.dumps({
-        "version": 1, "epoca": 2, "identidad": "fixture",
-        "archivos": archivos, "entorno": {}, "codigo_sha256": "fixture",
-    }), encoding="utf-8")
-    (completo / "COMPLETO").write_text(huella_dataset(manifiesto_path), encoding="utf-8")
-    (raiz / "runs/evaluacion_completa_20").mkdir(parents=True)
-    (raiz / "runs/evaluacion_completa_20/evaluacion.json").write_text(json.dumps({
-        "checkpoint_sha256": hash_completo, "dataset_sha256": hash_datos,
-        "particion": "test_interno",
-        "protocolo": "diario_a_un_paso_historia_observada_hasta_t-1",
-        "epoca_seleccionada_por_validacion": 2, "input_dim": 10,
-        "nombres_columnas": [
-            "ventas_hace_1_dia", "ventas_hace_7_dias", "promedio_ventas_7_dias",
-            "cantidad_en_promocion", "dia_semana_seno", "dia_semana_coseno",
-            "mes_seno", "mes_coseno", "tienda_1", "familia_BEAUTY",
-        ],
-        "filas_por_particion": {"test": 31},
-        "mlp": {"mae": 1.5, "rmse": 2.5, "n": 31},
-        "baseline_semanal": {"mae": 2.5, "rmse": 4., "n": 31},
-        "periodos": {"test": ["2017-07-16", "2017-08-15"]},
-        "fecha_min": "2017-07-16", "fecha_max": "2017-08-15",
-    }))
-    backtest = raiz / "runs/evaluaciones/pronostico_recursivo_validacion_20261111_final"
-    backtest.mkdir(parents=True)
-    (backtest / "informe.json").write_text(json.dumps({
-        "checkpoint": {"sha256": hash_completo, "epoca": 2, "input_dim": 10},
-        "dataset_sha256": hash_datos, "particion": "validacion",
-        "protocolo": "origen_movil_validacion_pronostico_recursivo_7_dias",
-        "test_preservado": True, "horizonte_maximo": 7,
-        "origenes_solicitados": ["2017-06-15"],
-        "ventanas_con_resultados": 1, "ventanas_completas": 1,
-        "series_evaluadas": 2, "predicciones_evaluadas": 14,
-        "periodo_validacion": ["2017-06-16", "2017-07-15"],
-        "general": {
-            "mlp": {"mae": 4., "rmse": 5., "n": 14},
-            "referencia_semanal": {"mae": 3., "rmse": 6., "n": 14},
-        },
-        "por_horizonte": [{
-            "horizonte": h,
-            "mlp": {"mae": 4., "rmse": 5., "n": 2},
-            "referencia_semanal": {"mae": 3., "rmse": 6., "n": 2},
-        } for h in range(1, 8)],
-        "promociones": {"supuesto": "El calendario era conocido en el origen."},
-    }))
-    return ServicioPiloto(raiz)
+FECHA_CORTE = date(2026, 11, 16)
+FECHA_ACTUAL = date(2026, 11, 17)
+
+
+class RepositorioEnMemoria:
+    def __init__(self):
+        self.productos = (
+            Producto("BEB-001", "Agua mineral 500 ml", "bebidas"),
+            Producto("LAC-001", "Leche entera 1 l", "lacteos"),
+        )
+
+    def buscar_por_id(self, producto_id):
+        return next(
+            (producto for producto in self.productos if producto.producto_id == producto_id),
+            None,
+        )
+
+    def listar(self):
+        return self.productos
+
+
+class MotorFalso:
+    fecha_corte = FECHA_CORTE
+    tiendas_disponibles = (1, 2, 3)
+
+    def __init__(self):
+        self.consultas = []
+
+    def predecir(self, *, tienda_id, producto_id, fecha):
+        self.consultas.append((tienda_id, producto_id, fecha))
+        return 12.75
 
 
 @pytest.fixture
-def cliente(servicio):
-    app = crear_app(servicio)
+def cliente():
+    servicio = ServicioPrediccion(
+        RepositorioEnMemoria(),
+        MotorFalso(),
+        hoy=lambda: FECHA_ACTUAL,
+    )
+    app = crear_app(servicio_prediccion=servicio)
     app.config["TESTING"] = True
     return app.test_client()
 
 
-@pytest.mark.parametrize("ruta", ["/", "/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"])
-def test_navegacion(cliente, ruta):
-    respuesta = cliente.get(ruta)
-    assert respuesta.status_code == 200
-    texto = respuesta.get_data(as_text=True)
-    assert "StockPredict IA" in texto
-    if ruta in ("/", "/inicio", "/predicciones"):
-        assert 'id="model-select"' in texto
-    if ruta in ("/", "/inicio"):
-        assert "Piloto y completo" in texto
-        assert "Modelo completo disponible localmente" in texto
-    if ruta == "/predicciones":
-        assert 'id="forecast-form"' in texto
-        assert 'id="forecast-origin"' in texto
-        assert "Piloto · 13 características" in texto
-        assert "Completo · 95 características" in texto
-    if ruta == "/evaluacion":
-        assert "evaluación diaria a un paso" in texto.lower()
-        assert "backtest recursivo" in texto.lower()
-        assert "modelo piloto · evaluación histórica" in texto.lower()
-        assert "Modelo completo · best.pt (época 2)" in texto
-        assert texto.index("Evaluación del modelo completo") < texto.index("Backtest recursivo")
-        assert texto.index("Backtest recursivo") < texto.index("Modelo piloto · evaluación histórica")
-        assert "40.00%" in texto and "37.50%" in texto
-    if ruta == "/historial":
-        assert "Modelo completo disponible localmente" in texto
-        assert "Modelo completo / Drive" not in texto
-        assert texto.index("Modelo completo disponible localmente") < texto.index(
-            "Modelo piloto · historial histórico"
-        )
-        assert 'id="tabla-epocas-completo"' in texto
-        assert 'data-epoca="2" data-train="3.0" data-val="4.0"' in texto
-        assert "No especificado en la configuración archivada." in texto
-    for enlace in ("/inicio", "/predicciones", "/evaluacion", "/historial", "/acerca"):
-        assert f'href="{enlace}"' in texto
-    assert 'href="/static/favicon.svg"' in texto
-    assert 'id="theme-toggle"' in texto
-    assert 'src="/static/tema.js"></script>' in texto
-    assert texto.index('src="/static/tema.js"></script>') < texto.index('href="/static/estilos.css"')
-    assert 'src="/static/presentacion.js"' in texto
-    assert texto.index('src="/static/presentacion.js"') < texto.index('src="/static/app.js"')
-    assert 'src="/static/app.js"' in texto
-    assert "C:/secret" not in texto
-    for ficticio in ("Elena Ruiz", "98.4", "50/50", "Math.random", "p-value", "AdamW", "RUN-2024", "95%"):
-        assert ficticio not in texto
+def test_paginas_y_navegacion_no_muestran_contenido_heredado(cliente):
+    for pagina in PAGINAS:
+        respuesta = cliente.get("/" if pagina == "inicio" else f"/{pagina}")
+        assert respuesta.status_code == 200
+        texto = respuesta.get_data(as_text=True)
+        assert "StockPredict IA" in texto
+        assert "datos sintéticos" in texto.lower()
+        assert "Favorita" not in texto
+        for enlace in PAGINAS:
+            assert f'href="/{enlace}"' in texto
+    for pagina in ("evaluacion", "historial"):
+        respuesta = cliente.get(f"/{pagina}")
+        assert "Vista temporalmente deshabilitada" in respuesta.get_data(as_text=True)
 
 
-def test_opciones_y_prediccion_real_sin_fit(cliente, servicio, monkeypatch):
-    antes = huella_dataset(servicio.csv), huella_dataset(servicio.checkpoint)
-    def prohibido(*a, **k):
-        pytest.fail("La web no debe ajustar transformaciones")
-    monkeypatch.setattr(OneHotEncoder, "fit", prohibido)
-    monkeypatch.setattr(StandardScaler, "fit", prohibido)
-    opciones = cliente.get("/api/opciones")
+def test_opciones_catalogo_y_prediccion_por_la_nueva_api(cliente):
+    opciones = cliente.get("/api/synthetic-v2/opciones")
     assert opciones.status_code == 200
-    serie = opciones.json["series"][0]
-    assert serie["tienda"] == 1 and serie["familia"] == "BEAUTY"
-    assert "2017-06-01" not in serie["fechas"]  # Sin historia suficiente.
-    assert "2017-07-16" in serie["fechas"]
-    respuesta = cliente.post("/api/predicciones", json={"tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16"})
-    assert respuesta.status_code == 200
-    assert set(respuesta.json) == {
-        "tienda", "familia", "fecha", "ventas_estimadas", "epoca", "modelo", "aviso",
+    assert opciones.json == {
+        "tiendas": [1, 2, 3],
+        "fecha_corte": "2026-11-16",
+        "fecha_minima": "2026-11-17",
+        "datos_sinteticos": True,
     }
-    assert respuesta.json["familia"] == "BEAUTY"
-    assert isinstance(respuesta.json["ventas_estimadas"], float)
-    assert respuesta.json["ventas_estimadas"] == 1.
-    assert respuesta.json["modelo"] == "Piloto local · best.pt"
-    assert "checkpoint" not in respuesta.json
-    assert str(servicio.raiz) not in respuesta.get_data(as_text=True)
-    assert antes == (huella_dataset(servicio.csv), huella_dataset(servicio.checkpoint))
 
-
-def test_seleccion_modelo_completo_reutiliza_checkpoint_y_opciones(cliente):
-    opciones = cliente.get("/api/opciones?modelo=completo")
-    assert opciones.status_code == 200
-    assert opciones.json["modelo_id"] == "completo"
-    assert opciones.json["input_dim"] == 10
-    assert opciones.json["series"] == [{
-        "tienda": 1, "familia": "BEAUTY",
-        "fecha_min": "2013-01-08", "fecha_max": "2017-08-15",
-    }]
-    assert opciones.json["modelos"] == [
-        {"id": "piloto", "nombre": "Piloto · 13 características"},
-        {"id": "completo", "nombre": "Completo · 95 características"},
-    ]
-
-    respuesta = cliente.post("/api/predicciones", json={
-        "tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16", "modelo": "completo",
-    })
-    assert respuesta.status_code == 200
-    assert respuesta.json["ventas_estimadas"] == 1.
-    assert respuesta.json["modelo"] == "Completo · best.pt"
-    assert "checkpoint" not in respuesta.json
-
-
-def test_modelo_completo_rechaza_fecha_sin_historia(cliente):
-    respuesta = cliente.post("/api/predicciones", json={
-        "tienda": 1, "familia": "BEAUTY", "fecha": "2017-06-01", "modelo": "completo",
-    })
-    assert respuesta.status_code == 422
-    assert "siete días previos observados" in respuesta.json["error"]
-
-
-def test_pronostico_recursivo_completo(cliente):
-    opciones = cliente.get("/api/opciones?modelo=completo")
-    assert opciones.status_code == 200
-    assert opciones.json["fecha_max_historica"] == "2017-08-15"
-    respuesta = cliente.post("/api/pronosticos", json={
-        "tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 7,
-    })
-    assert respuesta.status_code == 200
-    assert set(respuesta.json) == {
-        "tienda", "familia", "fecha_origen", "horizonte", "epoca", "pronosticos", "modelo", "aviso",
+    catalogo = cliente.get("/api/synthetic-v2/productos")
+    assert catalogo.status_code == 200
+    assert len(catalogo.json["productos"]) == 2
+    assert catalogo.json["productos"][0] == {
+        "producto_id": "BEB-001",
+        "nombre": "Agua mineral 500 ml",
+        "categoria": "bebidas",
     }
-    assert respuesta.json["modelo"] == "Completo · best.pt"
-    assert respuesta.json["epoca"] == 2
-    assert respuesta.json["familia"] == "BEAUTY"
-    assert [fila["fecha"] for fila in respuesta.json["pronosticos"]] == [
-        f"2017-08-{dia:02d}" for dia in range(16, 23)
-    ]
-    assert all(fila["ventas_estimadas"] == 1. for fila in respuesta.json["pronosticos"])
-    assert set(respuesta.json["pronosticos"][0]) == {
-        "fecha", "ventas_estimadas", "cantidad_en_promocion",
-    }
-    assert isinstance(respuesta.json["pronosticos"][0]["ventas_estimadas"], float)
-    assert "no es una predicción actual de 2026" in respuesta.json["aviso"]
-    assert "checkpoint" not in respuesta.get_data(as_text=True)
-    assert str(cliente.application.extensions["piloto"].raiz) not in respuesta.get_data(as_text=True)
+
+    resultado = cliente.post(
+        "/api/synthetic-v2/predicciones",
+        json={
+            "tienda_id": 1,
+            "producto_id": "BEB-001",
+            "fecha": "2026-11-17",
+        },
+    )
+    assert resultado.status_code == 200
+    assert resultado.json["producto"]["producto_id"] == "BEB-001"
+    assert resultado.json["fecha"] == "2026-11-17"
+    assert resultado.json["unidades_estimadas"] == 12.75
+    assert resultado.json["datos_sinteticos"] is True
 
 
-@pytest.mark.parametrize("datos,estado", [
-    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 0}, 400),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 8}, 400),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-02-31", "horizonte": 7}, 400),
-    ({"tienda": 2, "familia": "BEAUTY", "fecha_origen": "2017-08-15", "horizonte": 7}, 422),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha_origen": "2017-08-16", "horizonte": 7}, 422),
-])
-def test_validaciones_pronostico(cliente, datos, estado):
-    respuesta = cliente.post("/api/pronosticos", json=datos)
+@pytest.mark.parametrize(
+    "datos,estado",
+    [
+        ({"tienda_id": 99, "producto_id": "BEB-001", "fecha": "2026-11-17"}, 404),
+        ({"tienda_id": 1, "producto_id": "NO-EXISTE", "fecha": "2026-11-17"}, 404),
+        ({"tienda_id": True, "producto_id": "BEB-001", "fecha": "2026-11-17"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-02-30"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-16"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-16T00:00:00"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-17", "modelo": "viejo"}, 400),
+    ],
+)
+def test_validaciones_de_prediccion(cliente, datos, estado):
+    respuesta = cliente.post("/api/synthetic-v2/predicciones", json=datos)
     assert respuesta.status_code == estado
     assert "error" in respuesta.json
 
 
-@pytest.mark.parametrize("ruta,datos", [
-    ("/api/opciones?modelo=desconocido", None),
-    ("/api/predicciones", {"tienda": 1, "familia": "BEAUTY",
-                           "fecha": "2017-07-16", "modelo": "desconocido"}),
-])
-def test_modelo_no_admitido(cliente, ruta, datos):
-    respuesta = cliente.get(ruta) if datos is None else cliente.post(ruta, json=datos)
-    assert respuesta.status_code == 400
-    assert "error" in respuesta.json
+def test_origen_y_formato_json(cliente):
+    assert cliente.post(
+        "/api/synthetic-v2/predicciones",
+        data="{}",
+        content_type="text/plain",
+    ).status_code == 415
+    assert cliente.post(
+        "/api/synthetic-v2/predicciones",
+        data="{",
+        content_type="application/json",
+    ).status_code == 400
+    assert cliente.post(
+        "/api/synthetic-v2/predicciones",
+        json={},
+        headers={"Origin": "https://externo.example"},
+    ).status_code == 403
 
 
-@pytest.mark.parametrize("datos,estado", [
-    ({}, 400), ([], 400), ({"tienda": 1}, 400),
-    ({"tienda": True, "familia": "BEAUTY", "fecha": "2017-07-16"}, 400),
-    ({"tienda": 1.5, "familia": "BEAUTY", "fecha": "2017-07-16"}, 400),
-    ({"tienda": 1, "familia": "", "fecha": "2017-07-16"}, 400),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha": "2017-02-31"}, 400),
-    ({"tienda": 2, "familia": "BEAUTY", "fecha": "2017-07-16"}, 422),
-    ({"tienda": 1, "familia": "OTRA", "fecha": "2017-07-16"}, 422),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha": "2030-01-01"}, 422),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha": "2017-06-01"}, 422),
-    ({"tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16", "checkpoint": "otro.pt"}, 400),
-])
-def test_validaciones(cliente, datos, estado):
-    respuesta = cliente.post("/api/predicciones", json=datos)
-    assert respuesta.status_code == estado
-    assert "error" in respuesta.json
-
-
-def test_json_origen_y_limites(cliente):
-    assert cliente.post("/api/predicciones", data="hola").status_code == 415
-    assert cliente.post("/api/predicciones", data="{", content_type="application/json").status_code == 400
-    assert cliente.post("/api/predicciones", json={}, headers={"Origin": "https://externo.example"}).status_code == 403
-    assert cliente.post("/api/predicciones", data="x" * 5000, content_type="application/json").status_code == 413
-    assert cliente.get("/api/resumen", headers={"Host": "externo.example"}).status_code == 400
-
-
-@pytest.mark.parametrize("ruta", [
-    "/data/raw/train.csv", "/runs/favorita_subconjunto_reanudado_4/best.pt",
-    "/runs/favorita_completa_20/best.pt", "/static/../../data/raw/train.csv",
-    "/disenos/stitch/inicio.html", "/desconocida",
-])
-def test_no_expone_archivos(cliente, ruta):
-    assert cliente.get(ruta).status_code == 404
-
-
-def test_resumen_sanitizado_y_metricas_json(cliente):
-    respuesta = cliente.get("/api/resumen")
-    assert respuesta.json["evaluacion"]["mlp"]["mae"] == 1.
-    assert respuesta.json["evaluacion"]["mejora"] == pytest.approx(100 / 3)
-    completa = respuesta.json["evaluacion_completa"]
-    assert completa["mlp"]["mae"] == 1.5
-    assert completa["baseline"]["rmse"] == 4.
-    assert completa["mejora_mae"] == pytest.approx(40.)
-    assert completa["mejora_rmse"] == pytest.approx(37.5)
-    backtest = respuesta.json["backtest_completo"]
-    assert backtest["mlp"]["mae"] == 4.
-    assert backtest["mejora_mae"] == pytest.approx(-100 / 3)
-    assert len(backtest["horizontes"]) == 7
-    assert "secret" not in respuesta.get_data(as_text=True)
-    assert "No verificado" in respuesta.json["drive"]
-    assert len(respuesta.json["corridas"]) == 1
-
-
-def test_historial_completo_usa_metricas_verificadas(servicio):
-    historial = servicio.resumen()["entrenamiento_completo"]
-    assert historial["epocas"] == 2
-    assert historial["input_dim"] == 10
-    assert historial["batch_size"] == 7
-    assert historial["learning_rate"] == 0.001
-    assert historial["optimizador"] is None
-    assert historial["perdida"] is None
-    assert historial["historial_verificado"] is True
-    assert [fila["epoca"] for fila in historial["historial"]] == [1, 2]
-    assert historial["historial"][1]["val_rmse"] == 2.
-
-
-def test_csv_completo_invalido_no_oculta_metadatos_verificables(servicio):
-    ruta = servicio.raiz / "runs/favorita_completa_20/metricas.csv"
-    ruta.write_text("epoca,metricas_incompletas\n1,100\n", encoding="utf-8")
-    resumen = servicio.resumen()
-    historial = resumen["entrenamiento_completo"]
-    assert historial["epocas"] == 2
-    assert historial["input_dim"] == 10
-    assert historial["historial_verificado"] is False
-    assert historial["historial"] == []
-    assert "Métricas por época del modelo completo ausentes o incompletas." in resumen["advertencias"]
-
-
-def test_artefactos_ausentes_y_errores_no_filtran_rutas(tmp_path, cliente, servicio, monkeypatch):
-    c = crear_app(ServicioPiloto(tmp_path)).test_client()
-    assert c.get("/api/opciones").status_code == 503
-    assert c.get("/evaluacion").status_code == 200
-    assert c.get("/api/resumen").json["evaluacion"] is None
-    def error(**kw):
-        raise ValueError("C:/secret/modelo.pt")
-    monkeypatch.setattr(servicio, "predecir", error)
-    respuesta = cliente.post("/api/predicciones", json={"tienda": 1, "familia": "BEAUTY", "fecha": "2017-07-16"})
-    assert respuesta.status_code == 503
-    assert "secret" not in respuesta.get_data(as_text=True)
-
-
-def test_evaluacion_otro_checkpoint_no_se_muestra(servicio):
-    datos = json.loads(servicio.evaluacion.read_text())
-    datos["checkpoint_sha256"] = "diferente"
-    servicio.evaluacion.write_text(json.dumps(datos))
-    assert servicio.resumen()["evaluacion"] is None
-
-
-def test_evaluaciones_completas_rechazan_checkpoint_distinto(servicio):
-    datos = json.loads(servicio.evaluacion_completa.read_text())
-    datos["checkpoint_sha256"] = "diferente"
-    servicio.evaluacion_completa.write_text(json.dumps(datos))
-    assert servicio.resumen()["evaluacion_completa"] is None
-
-    datos = json.loads(servicio.backtest_completo.read_text())
-    datos["checkpoint"]["sha256"] = "diferente"
-    servicio.backtest_completo.write_text(json.dumps(datos))
-    assert servicio.resumen()["backtest_completo"] is None
-
-
-def test_estaticos_y_cabeceras(cliente):
+def test_rutas_anteriores_quedan_inactivas(cliente):
     for ruta in (
-        "/static/estilos.css", "/static/app.js", "/static/presentacion.js",
-        "/static/tema.js", "/static/favicon.svg",
+        "/api/opciones",
+        "/api/resumen",
+        "/api/predicciones",
+        "/api/pronosticos",
+    ):
+        respuesta = cliente.get(ruta) if ruta != "/api/predicciones" else cliente.post(ruta, json={})
+        assert respuesta.status_code == 404
+
+
+def test_checkpoint_invalido_no_impide_iniciar_y_responde_503(tmp_path):
+    app = crear_app(
+        ruta_catalogo=tmp_path / "catalogo.csv",
+        ruta_checkpoint=tmp_path / "checkpoint.pt",
+    )
+    app.config["TESTING"] = True
+
+    respuesta = app.test_client().get("/api/synthetic-v2/opciones")
+
+    assert respuesta.status_code == 503
+    assert respuesta.json == {"error": "El modelo sintético no está disponible."}
+    assert str(tmp_path) not in respuesta.get_data(as_text=True)
+    prediccion = app.test_client().post(
+        "/api/synthetic-v2/predicciones",
+        json={
+            "tienda_id": 1,
+            "producto_id": "BEB-001",
+            "fecha": "2026-11-17",
+        },
+    )
+    assert prediccion.status_code == 503
+    assert prediccion.json == {
+        "error": "El checkpoint sintético no está disponible o es inválido"
+    }
+
+
+def test_catalogo_invalido_responde_503_sin_ocultar_el_inicio(tmp_path):
+    app = crear_app(
+        ruta_catalogo=tmp_path / "catalogo-inexistente.csv",
+        ruta_checkpoint=tmp_path / "checkpoint-no-consultado.pt",
+    )
+    app.config["TESTING"] = True
+    cliente_local = app.test_client()
+
+    assert cliente_local.get("/").status_code == 200
+    respuesta = cliente_local.get("/api/synthetic-v2/productos")
+    assert respuesta.status_code == 503
+    assert respuesta.json == {"error": "El catálogo sintético no está disponible."}
+    assert str(tmp_path) not in respuesta.get_data(as_text=True)
+
+
+def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
+    pagina = cliente.get("/predicciones").get_data(as_text=True)
+    assert 'id="store-select"' in pagina
+    assert 'id="product-select"' in pagina
+    assert 'id="date-input"' in pagina
+    assert 'id="model-select"' not in pagina
+    assert 'id="forecast-form"' not in pagina
+    assert 'id="forecast-origin"' not in pagina
+    assert "familia" not in pagina.lower()
+    assert "Favorita" not in pagina
+
+    javascript = cliente.get("/static/app.js").get_data(as_text=True)
+    assert 'fetch("/api/synthetic-v2/opciones")' in javascript
+    assert 'fetch("/api/synthetic-v2/productos")' in javascript
+    assert 'fetch("/api/synthetic-v2/predicciones"' in javascript
+    assert "producto_id: producto.value" in javascript
+    assert "/api/pronosticos" not in javascript
+    assert "/api/opciones?" not in javascript
+
+    presentacion = cliente.get("/static/presentacion.js").get_data(as_text=True)
+    assert "BEAUTY" not in presentacion
+    assert "nombreFamilia" not in presentacion
+
+
+def test_activos_y_cabeceras(cliente):
+    for ruta in (
+        "/static/estilos.css",
+        "/static/app.js",
+        "/static/presentacion.js",
+        "/static/tema.js",
+        "/static/favicon.svg",
     ):
         respuesta = cliente.get(ruta)
         assert respuesta.status_code == 200
         assert respuesta.headers["X-Content-Type-Options"] == "nosniff"
         assert "frame-ancestors 'none'" in respuesta.headers["Content-Security-Policy"]
-    js = cliente.get("/static/app.js").get_data(as_text=True)
-    assert "formatearUnidadesEstimadas" in js
-    assert "nombreFamilia" in js
-    assert "Math.random" not in js
-    assert 'fetch("/api/predicciones"' in js
-    assert "aria-busy" in js
-    assert "var(--chart-grid)" in js
-    tema = cliente.get("/static/tema.js").get_data(as_text=True)
-    assert '"stockpredict-theme"' in tema
-    assert "prefers-color-scheme: dark" in tema
-    assert 'localStorage.setItem(claveTema, tema)' in tema
-    css = cliente.get("/static/estilos.css").get_data(as_text=True)
-    assert ".training-chart svg{width:100%;height:auto}" in css
-    assert "[data-theme=dark]" in css
-    assert "--page-bg:#0f172a" in css
-    assert "--surface-card:#1e293b" in css
-    assert ".form-control:focus" in css
-    assert "background-image:url(" in css
-    assert "padding:.5rem .875rem" in css
-    assert "padding-right:2.75rem" in css
-    assert ".form-control option:checked" in css
-    assert "[data-theme=dark] .form-control option:checked" in css
-    for template in ("formulario.html", "predicciones.html"):
-        texto = (Path(__file__).resolve().parents[1] / "web/templates" / template).read_text(encoding="utf-8")
-        assert 'class="form-control' in texto
 
 
-def test_copias_stitch_identificadas():
-    raiz = Path(__file__).resolve().parents[1]
-    registro = json.loads((raiz / "disenos/stitch/procedencia.json").read_text())
-    assert len(registro) == 10
-    for entrada in registro:
-        assert huella_dataset(raiz / "disenos/stitch" / entrada["copia"]) == entrada["sha256"]
+def test_prediccion_web_usa_el_checkpoint_real_y_no_un_valor_fijo():
+    if not RUTA_CATALOGO.is_file() or not RUTA_CHECKPOINT.is_file():
+        pytest.skip("Se requiere el catálogo y checkpoint sintéticos locales.")
+    servicio = ServicioPrediccion(
+        RepositorioProductosCSV(RUTA_CATALOGO),
+        AdaptadorPrediccionPyTorch(RUTA_CHECKPOINT),
+        hoy=lambda: FECHA_ACTUAL,
+    )
+    app = crear_app(servicio_prediccion=servicio)
+    app.config["TESTING"] = True
+    cliente_real = app.test_client()
+    opciones = cliente_real.get("/api/synthetic-v2/opciones")
+    assert opciones.status_code == 200
+    catalogo = cliente_real.get("/api/synthetic-v2/productos")
+    assert catalogo.status_code == 200
+    producto = next(p for p in catalogo.json["productos"] if p["producto_id"] == "BEB-002")
+    fecha = "2026-11-25"
+    consulta = {"tienda_id": 2, "producto_id": producto["producto_id"], "fecha": fecha}
+
+    respuesta = cliente_real.post("/api/synthetic-v2/predicciones", json=consulta)
+
+    assert respuesta.status_code == 200
+    prediccion_directa = predecir_venta(
+        RUTA_CHECKPOINT,
+        tienda_id=consulta["tienda_id"],
+        producto_id=consulta["producto_id"],
+        fecha=fecha,
+    )
+    assert respuesta.json["unidades_estimadas"] == prediccion_directa["unidades_estimadas"]
+    assert isinstance(respuesta.json["unidades_estimadas"], float)
+    assert respuesta.json["datos_sinteticos"] is True

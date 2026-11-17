@@ -1,8 +1,9 @@
 """Blueprint HTTP independiente para el caso de uso sintético."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from src.domain.exceptions import (
+    ErrorCatalogo,
     ErrorInferencia,
     ProductoNoEncontrado,
     SolicitudPrediccionInvalida,
@@ -17,9 +18,22 @@ def crear_blueprint_prediccion(servicio):
         url_prefix="/api/synthetic-v2",
     )
 
+    @blueprint.get("/opciones")
+    def obtener_opciones():
+        try:
+            opciones = servicio.obtener_opciones()
+        except ErrorInferencia:
+            current_app.logger.exception("No se pudo cargar el checkpoint sintético")
+            return jsonify(error="El modelo sintético no está disponible."), 503
+        return jsonify(**opciones, datos_sinteticos=True)
+
     @blueprint.get("/productos")
     def listar_productos():
-        productos = servicio.listar_productos()
+        try:
+            productos = servicio.listar_productos()
+        except ErrorCatalogo:
+            current_app.logger.exception("No se pudo cargar el catálogo sintético")
+            return jsonify(error="El catálogo sintético no está disponible."), 503
         return jsonify(productos=[
             {
                 "producto_id": producto.producto_id,
@@ -31,6 +45,9 @@ def crear_blueprint_prediccion(servicio):
 
     @blueprint.post("/predicciones")
     def predecir():
+        origen = request.headers.get("Origin")
+        if origen and origen != request.host_url.rstrip("/"):
+            return jsonify(error="Origen de solicitud no permitido."), 403
         if not request.is_json:
             return jsonify(error="El cuerpo debe ser JSON"), 415
         datos = request.get_json(silent=True)
@@ -51,7 +68,11 @@ def crear_blueprint_prediccion(servicio):
             return jsonify(error=str(error)), 400
         except (ProductoNoEncontrado, TiendaNoEncontrada) as error:
             return jsonify(error=str(error)), 404
+        except ErrorCatalogo:
+            current_app.logger.exception("No se pudo consultar el catálogo sintético")
+            return jsonify(error="El catálogo sintético no está disponible."), 503
         except ErrorInferencia as error:
+            current_app.logger.exception("Falló la inferencia del modelo sintético")
             return jsonify(error=str(error)), 503
         return jsonify({
             "tienda_id": resultado.tienda_id,

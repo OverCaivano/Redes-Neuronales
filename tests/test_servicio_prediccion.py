@@ -46,6 +46,7 @@ def crear_servicio():
     servicio = ServicioPrediccion(
         RepositorioEnMemoria([PRODUCTO]),
         motor,
+        hoy=lambda: date(2026, 11, 17),
     )
     return servicio, motor
 
@@ -87,6 +88,26 @@ def test_servicio_rechaza_consultas_invalidas_sin_invocar_motor(consulta, error)
     assert motor.consultas == []
 
 
+def test_opciones_y_fecha_minima_respetan_hoy_y_corte_del_dataset():
+    servicio = ServicioPrediccion(
+        RepositorioEnMemoria([PRODUCTO]),
+        MotorFalso(),
+        hoy=lambda: date(2026, 11, 20),
+    )
+
+    assert servicio.obtener_opciones() == {
+        "tiendas": (1, 2, 3),
+        "fecha_corte": "2026-11-16",
+        "fecha_minima": "2026-11-20",
+    }
+    with pytest.raises(SolicitudPrediccionInvalida, match="fecha mínima"):
+        servicio.predecir(
+            tienda_id=1,
+            producto_id="BEB-001",
+            fecha="2026-11-19",
+        )
+
+
 def test_servicio_no_importa_framework_persistencia_ni_pytorch():
     ruta = (
         Path(__file__).resolve().parents[1]
@@ -104,4 +125,4 @@ def test_servicio_no_importa_framework_persistencia_ni_pytorch():
             modulos.add(nodo.module.split(".")[0])
 
     assert modulos.isdisjoint({"flask", "csv", "pandas", "torch"})
-    assert modulos.issubset({"datetime", "numbers", "src"})
+    assert modulos.issubset({"datetime", "numbers", "src", "typing"})

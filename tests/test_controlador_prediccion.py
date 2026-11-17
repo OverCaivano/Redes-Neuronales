@@ -28,7 +28,11 @@ class MotorFalso:
 
 
 def test_blueprint_expone_endpoints_sin_montarse_en_la_app_heredada():
-    servicio = ServicioPrediccion(RepositorioEnMemoria(), MotorFalso())
+    servicio = ServicioPrediccion(
+        RepositorioEnMemoria(),
+        MotorFalso(),
+        hoy=lambda: date(2026, 11, 17),
+    )
     app = Flask("test_blueprint_independiente")
     app.register_blueprint(crear_blueprint_prediccion(servicio))
     cliente = app.test_client()

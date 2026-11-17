@@ -44,20 +44,20 @@
         <span class="font-label-sm text-label-sm text-on-surface-variant">Núcleo Predictivo</span>
         <div class="flex items-center gap-1.5">
           <span class="relative flex h-2 w-2"><span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span></span>
-          <span class="font-label-sm text-label-sm text-secondary font-medium">Piloto + completo</span>
+          <span class="font-label-sm text-label-sm text-secondary font-medium">Modelo sintético</span>
         </div>
       </div>
       <div class="text-body-sm font-body-sm text-on-surface mb-1 flex items-center gap-1.5"><span class="text-primary">◇</span><span>PyTorch / MLP</span></div>
       <div class="text-label-sm font-label-sm text-on-surface-variant/90 border-t border-outline-variant/30 pt-1.5 flex items-center justify-between">
-        <span>Dataset activo:</span>
-        <span class="font-semibold text-on-surface">Favorita Grocery v1</span>
+        <span>Catálogo:</span>
+        <span class="font-semibold text-on-surface">30 productos</span>
       </div>
     </div>
   </aside>
   <div class="pl-72 app-body">
     <header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-outline-variant/40 z-40 px-space-xl flex items-center justify-between">
       <button aria-controls="navegacion" aria-expanded="false" id="menu-toggle" type="button">☰ <span>Menú</span></button>
-      <span class="text-label-md header-context">Favorita · histórico y pronósticos (2017)</span>
+      <span class="text-label-md header-context">Ventas sintéticas · pronóstico por producto</span>
       <div class="header-actions">
         <button aria-label="Activar tema oscuro" aria-pressed="false" class="theme-toggle" id="theme-toggle" title="Activar tema oscuro" type="button">
           <svg aria-hidden="true" class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -68,12 +68,12 @@
             <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"></path>
           </svg>
         </button>
-        <span class="badge header-badge">Modelos locales / CPU</span>
+        <span class="badge header-badge">PyTorch · datos sintéticos</span>
       </div>
     </header>
     <main id="contenido" class="relative min-h-screen bg-surface w-full px-space-xl py-space-xl">
       <div class="flex flex-col gap-space-lg max-w-screen-2xl mx-auto">{% block contenido %}{% endblock %}</div>
-      <footer class="mt-10 text-body-sm text-on-surface-variant">Prototipo académico · ventas estimadas por día y familia. No es inventario ni recomendación de compra.</footer>
+      <footer class="mt-10 text-body-sm text-on-surface-variant">Prototipo académico · predicciones basadas exclusivamente en datos sintéticos. No es inventario ni recomendación de compra.</footer>
     </main>
   </div>
 </body>

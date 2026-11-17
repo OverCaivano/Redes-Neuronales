@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.datos_sinteticos import validar_catalogo_productos
+from src.domain.exceptions import ErrorCatalogo
 from src.domain.models import Producto
 
 
@@ -21,11 +22,16 @@ class RepositorioProductosCSV:
 
     def _cargar_productos(self):
         if self._productos_cache is None:
-            catalogo = pd.read_csv(
-                self._ruta_catalogo,
-                dtype={"producto_id": str, "nombre": str, "categoria": str},
-            )
-            validar_catalogo_productos(catalogo)
+            try:
+                catalogo = pd.read_csv(
+                    self._ruta_catalogo,
+                    dtype={"producto_id": str, "nombre": str, "categoria": str},
+                )
+                validar_catalogo_productos(catalogo)
+            except (OSError, ValueError, pd.errors.ParserError) as error:
+                raise ErrorCatalogo(
+                    "El catálogo sintético no está disponible o es inválido"
+                ) from error
             self._productos_cache = {
                 fila.producto_id: Producto(
                     producto_id=fila.producto_id,

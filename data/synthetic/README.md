@@ -68,11 +68,13 @@ Favorita. Cada corrida requiere una carpeta de salida nueva para evitar
 sobrescribir checkpoints previos. Los datos y las métricas son sintéticos y
 solo sirven para validar el pipeline; no demuestran precisión en ventas reales.
 
-## Arquitectura de aplicación (Bloque 3)
+## Aplicación web (Bloques 3 y 4)
 
 La lógica nueva está separada en dominio, contratos y servicios de aplicación,
 repositorio CSV, adaptador PyTorch y controlador Flask. El Blueprint se crea
-desde `src.composition.crear_blueprint_prediccion`, pero todavía no está
-registrado en `src/web_app.py`; la aplicación anterior y sus rutas permanecen
-sin cambios. El servicio recibe el repositorio y el motor de predicción por
-inyección, por lo que sus pruebas no necesitan Flask, CSV ni PyTorch.
+desde `src.composition.crear_blueprint_prediccion` y está registrado en
+`src/web_app.py`. La página `/predicciones` consulta opciones y productos del
+flujo sintético y envía la tienda, el producto y la fecha futura al Blueprint.
+El servicio recibe el repositorio y el motor por inyección; no depende de
+Flask, CSV ni PyTorch. Las rutas web anteriores de Favorita ya no están
+registradas; sus módulos se conservan para la limpieza final.

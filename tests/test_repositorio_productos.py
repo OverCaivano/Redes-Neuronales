@@ -1,4 +1,5 @@
 from src.datos_sinteticos import generar_catalogo_productos
+from src.domain.exceptions import ErrorCatalogo
 from src.domain.models import Producto
 from src.infrastructure.repositories.csv_product_repository import (
     RepositorioProductosCSV,
@@ -20,5 +21,5 @@ def test_repositorio_csv_lee_catalogo_sintetico_y_valida_esquema(tmp_path):
     catalogo = generar_catalogo_productos()
     catalogo.loc[1, "producto_id"] = "BEB-001"
     catalogo.to_csv(ruta, index=False)
-    with pytest.raises(ValueError, match="duplicados"):
+    with pytest.raises(ErrorCatalogo, match="catálogo sintético"):
         RepositorioProductosCSV(ruta).listar()

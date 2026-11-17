@@ -1,7 +1,8 @@
 """Orquestación del caso de uso de predicción por producto."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from numbers import Integral
+from typing import Callable
 
 from src.application.ports import MotorPrediccion, RepositorioProductos
 from src.domain.exceptions import (
@@ -17,21 +18,34 @@ class ServicioPrediccion:
         self,
         repositorio_productos: RepositorioProductos,
         motor_prediccion: MotorPrediccion,
+        hoy: Callable[[], date] = date.today,
     ):
         self._repositorio_productos = repositorio_productos
         self._motor_prediccion = motor_prediccion
+        self._hoy = hoy
 
     def listar_productos(self):
         return self._repositorio_productos.listar()
+
+    def obtener_opciones(self):
+        fecha_corte = self._motor_prediccion.fecha_corte
+        return {
+            "tiendas": self._motor_prediccion.tiendas_disponibles,
+            "fecha_corte": fecha_corte.isoformat(),
+            "fecha_minima": self._fecha_minima(fecha_corte).isoformat(),
+        }
 
     def predecir(self, *, tienda_id, producto_id, fecha):
         tienda = self._validar_tienda(tienda_id)
         producto_id = self._validar_producto_id(producto_id)
         dia = self._parsear_fecha(fecha)
-        if dia <= self._motor_prediccion.fecha_corte:
+        fecha_corte = self._motor_prediccion.fecha_corte
+        fecha_minima = self._fecha_minima(fecha_corte)
+        if dia < fecha_minima:
             raise SolicitudPrediccionInvalida(
-                "La fecha debe ser posterior al último día observado "
-                f"({self._motor_prediccion.fecha_corte.isoformat()})"
+                "La fecha debe ser actual o futura y posterior al último día "
+                f"observado ({fecha_corte.isoformat()}); fecha mínima: "
+                f"{fecha_minima.isoformat()}"
             )
 
         producto = self._repositorio_productos.buscar_por_id(producto_id)
@@ -49,6 +63,9 @@ class ServicioPrediccion:
             fecha=dia,
             unidades_estimadas=float(estimacion),
         )
+
+    def _fecha_minima(self, fecha_corte):
+        return max(self._hoy(), fecha_corte + timedelta(days=1))
 
     def _validar_tienda(self, tienda_id):
         if isinstance(tienda_id, bool) or not isinstance(tienda_id, Integral):

@@ -1,26 +1,18 @@
 <form aria-describedby="consulta-estado" class="flex flex-col gap-space-md" id="prediction-form">
   <div class="flex flex-col gap-2">
-    <label class="font-label-lg" for="model-select">Modelo</label>
-    <select class="form-control font-body-md text-body-md" id="model-select">
-      <option value="piloto">Piloto · 13 características</option>
-      <option value="completo">Completo · 95 características</option>
-    </select>
-  </div>
-  <div class="flex flex-col gap-2">
     <label class="font-label-lg" for="store-select">Tienda</label>
     <select class="form-control font-body-md text-body-md" disabled="" id="store-select" required=""><option value="">Cargando opciones…</option></select>
   </div>
   <div class="flex flex-col gap-2">
-    <label class="font-label-lg" for="family-select">Familia</label>
-    <select class="form-control font-body-md text-body-md" disabled="" id="family-select" required=""><option value="">Cargando opciones…</option></select>
+    <label class="font-label-lg" for="product-select">Producto</label>
+    <select class="form-control font-body-md text-body-md" disabled="" id="product-select" required=""><option value="">Cargando productos…</option></select>
   </div>
   <div class="flex flex-col gap-2">
-    <label class="font-label-lg" for="date-input">Fecha histórica</label>
+    <label class="font-label-lg" for="date-input">Fecha actual o futura</label>
     <input class="form-control font-body-md text-body-md" disabled="" id="date-input" required="" type="date"/>
   </div>
   <p class="text-body-sm text-on-surface-variant" id="rango-fechas"></p>
   <div class="flex flex-wrap gap-3">
     <button class="primary-button" disabled="" id="btn-predict" type="submit">Generar predicción</button>
-    <button class="secondary-button" disabled="" id="btn-pilot-case" type="button">Usar caso del piloto</button>
   </div>
 </form>

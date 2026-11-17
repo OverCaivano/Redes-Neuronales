@@ -1,0 +1,29 @@
+"""Contratos que aíslan los casos de uso de sus detalles técnicos."""
+
+from datetime import date
+from typing import Protocol
+
+from src.domain.models import Producto
+
+
+class RepositorioProductos(Protocol):
+    def buscar_por_id(self, producto_id: str) -> Producto | None:
+        ...
+
+    def listar(self) -> tuple[Producto, ...]:
+        ...
+
+
+class MotorPrediccion(Protocol):
+    @property
+    def fecha_corte(self) -> date:
+        ...
+
+    @property
+    def tiendas_disponibles(self) -> tuple[int, ...]:
+        ...
+
+    def predecir(
+        self, *, tienda_id: int, producto_id: str, fecha: date
+    ) -> float:
+        ...

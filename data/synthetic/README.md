@@ -67,3 +67,12 @@ Los artefactos se guardan en `runs/synthetic_product_sales_v1/`, separado de
 Favorita. Cada corrida requiere una carpeta de salida nueva para evitar
 sobrescribir checkpoints previos. Los datos y las métricas son sintéticos y
 solo sirven para validar el pipeline; no demuestran precisión en ventas reales.
+
+## Arquitectura de aplicación (Bloque 3)
+
+La lógica nueva está separada en dominio, contratos y servicios de aplicación,
+repositorio CSV, adaptador PyTorch y controlador Flask. El Blueprint se crea
+desde `src.composition.crear_blueprint_prediccion`, pero todavía no está
+registrado en `src/web_app.py`; la aplicación anterior y sus rutas permanecen
+sin cambios. El servicio recibe el repositorio y el motor de predicción por
+inyección, por lo que sus pruebas no necesitan Flask, CSV ni PyTorch.

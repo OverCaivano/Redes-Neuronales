@@ -1,7 +1,7 @@
 """Inferencia futura para el checkpoint sintético de ventas por producto."""
 
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 from numbers import Integral
 from pathlib import Path
 
@@ -49,37 +49,61 @@ def validar_consulta_producto(checkpoint, tienda_id, producto_id, fecha):
     return int(tienda_id), productos[producto_id], dia.date()
 
 
+class PronosticadorProducto:
+    """Carga una vez el checkpoint sintético y permite consultas repetidas."""
+
+    def __init__(self, checkpoint_path):
+        self._checkpoint, self._preparador, self._modelo = _cargar_checkpoint(
+            checkpoint_path
+        )
+        self.fecha_corte = date.fromisoformat(
+            self._checkpoint["metadata"]["fecha_maxima_observada"]
+        )
+        self.tiendas_disponibles = tuple(
+            self._checkpoint["preparador"]["categorias"]["tienda_id"]
+        )
+
+    def predecir(self, *, tienda_id, producto_id, fecha):
+        """Predice una fecha futura usando solo ID, catálogo y calendario."""
+        tienda, producto, dia = validar_consulta_producto(
+            self._checkpoint, tienda_id, producto_id, fecha
+        )
+        fila = pd.DataFrame([{
+            "fecha": pd.Timestamp(dia),
+            "tienda_id": tienda,
+            "producto_id": producto["producto_id"],
+            "categoria": producto["categoria"],
+            "mes": dia.month,
+        }])
+        caracteristicas = self._preparador.transformar(fila)
+        with torch.inference_mode():
+            salida = torch.expm1(
+                self._modelo(torch.from_numpy(caracteristicas))
+            ).clamp_min(0)
+        if salida.shape != (1, 1) or not torch.isfinite(salida).all():
+            raise ValueError("El modelo produjo una predicción inválida")
+        return {
+            "tienda_id": tienda,
+            "producto_id": producto["producto_id"],
+            "nombre": producto["nombre"],
+            "categoria": producto["categoria"],
+            "fecha": dia.isoformat(),
+            "unidades_estimadas": float(salida.item()),
+            "datos_sinteticos": True,
+            "supuesto": (
+                "No se suministran precio ni promoción; la predicción no está "
+                "condicionada por esas variables."
+            ),
+        }
+
+
 def predecir_venta(checkpoint_path, *, tienda_id, producto_id, fecha):
-    """Predice una fecha futura usando solo ID, catálogo y calendario."""
-    checkpoint, preparador, modelo = _cargar_checkpoint(checkpoint_path)
-    tienda, producto, dia = validar_consulta_producto(
-        checkpoint, tienda_id, producto_id, fecha
+    """Mantiene la API original para consultas individuales."""
+    return PronosticadorProducto(checkpoint_path).predecir(
+        tienda_id=tienda_id,
+        producto_id=producto_id,
+        fecha=fecha,
     )
-    fila = pd.DataFrame([{
-        "fecha": pd.Timestamp(dia),
-        "tienda_id": tienda,
-        "producto_id": producto["producto_id"],
-        "categoria": producto["categoria"],
-        "mes": dia.month,
-    }])
-    caracteristicas = preparador.transformar(fila)
-    with torch.inference_mode():
-        salida = torch.expm1(modelo(torch.from_numpy(caracteristicas))).clamp_min(0)
-    if salida.shape != (1, 1) or not torch.isfinite(salida).all():
-        raise ValueError("El modelo produjo una predicción inválida")
-    return {
-        "tienda_id": tienda,
-        "producto_id": producto["producto_id"],
-        "nombre": producto["nombre"],
-        "categoria": producto["categoria"],
-        "fecha": dia.isoformat(),
-        "unidades_estimadas": float(salida.item()),
-        "datos_sinteticos": True,
-        "supuesto": (
-            "No se suministran precio ni promoción; la predicción no está "
-            "condicionada por esas variables."
-        ),
-    }
 
 
 def main():

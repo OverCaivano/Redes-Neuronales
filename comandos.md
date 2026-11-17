@@ -13,6 +13,7 @@ py -3.13 -m venv venv
 .\venv\Scripts\python.exe -m pip check
 .\venv\Scripts\python.exe -m src.datos_sinteticos --output-dir data\synthetic --seed 42
 .\venv\Scripts\python.exe -m src.pipeline_productos train
+.\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 .\venv\Scripts\python.exe -m src.web_app
 ```
 
@@ -43,8 +44,12 @@ existentes; para otro entrenamiento se requiere una carpeta de salida nueva.
 ```
 
 La aplicación usa el checkpoint configurado en `src/composition.py`.
-Si se entrena en otra carpeta, actualizar allí las rutas antes de iniciar la
-web. El entrenamiento es explícito; nunca se ejecuta al abrir Flask.
+Flask también necesita el catálogo y el inventario generados en
+`data\synthetic`. Si se entrena en otra carpeta, actualizar allí las rutas
+antes de iniciar la web. El entrenamiento es explícito; nunca se ejecuta al
+abrir Flask. El entrenamiento predeterminado ejecutó 12 épocas y tardó
+aproximadamente 16,5 segundos en la verificación limpia con Python 3.13 y CPU;
+el tiempo varía según el equipo.
 
 ## Pruebas y verificaciones
 
@@ -53,6 +58,9 @@ web. El entrenamiento es explícito; nunca se ejecuta al abrir Flask.
 node --test tests\test_presentacion.js tests\test_app.js
 git diff --check
 ```
+
+Node.js se requiere solamente para ejecutar las pruebas JavaScript; se
+verificaron con Node.js 22.20.0. No es un requisito para iniciar Flask.
 
 ## Arquitectura actual
 

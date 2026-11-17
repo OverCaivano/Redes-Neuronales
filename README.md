@@ -14,6 +14,7 @@ py -3.13 -m venv venv
 .\venv\Scripts\python.exe -m pip check
 .\venv\Scripts\python.exe -m src.datos_sinteticos --output-dir data\synthetic --seed 42
 .\venv\Scripts\python.exe -m src.pipeline_productos train
+.\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 .\venv\Scripts\python.exe -m src.web_app
 ```
 
@@ -31,9 +32,14 @@ los datos y checkpoint guardados:
 Si falta el dataset sintético, el generador produce 127.440 filas de ventas
 diarias del `2023-01-01` al `2026-11-16`, un catálogo de 30 productos y un
 inventario sintético separado. Los CSV generados y los artefactos de
-entrenamiento están excluidos de Git. La aplicación requiere el catálogo y el
-checkpoint local; sin ellos informa que el modelo no está disponible, sin
-cargar otro modelo.
+entrenamiento están excluidos de Git. Flask requiere localmente
+`catalogo_productos_sinteticos.csv`, `inventario_sintetico.csv` y
+`runs\synthetic_product_sales_v1\best_model.pt`; sin esos artefactos informa
+que el modelo o los datos no están disponibles, sin cargar otro modelo.
+
+El entrenamiento predeterminado ejecuta 12 épocas. En la verificación limpia
+con Python 3.13 y CPU tardó aproximadamente 16,5 segundos; el tiempo varía
+según el equipo.
 
 ## Interfaz de una sola pantalla
 
@@ -98,7 +104,9 @@ git diff --check
 
 La suite incluye generación y validación de datos, pipeline, predicción,
 reposición, la ruta principal de Flask y frontend. Las pruebas de predicción
-real requieren los CSV y el checkpoint locales.
+real requieren los CSV y el checkpoint locales. Las pruebas JavaScript
+requieren Node.js; se verificaron con la versión 22.20.0. Node.js no es
+necesario para ejecutar Flask.
 
 ## Límites
 

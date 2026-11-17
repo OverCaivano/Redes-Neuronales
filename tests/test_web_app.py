@@ -109,6 +109,12 @@ def test_raiz_es_la_unica_pantalla_y_contiene_el_formulario(cliente):
         'id="resultado"',
     ):
         assert elemento in texto
+    assert (
+        "El stock corresponde a un inventario sintético con fecha de corte "
+        "16/11/2026. No se descuentan automáticamente las ventas posteriores "
+        "a esa fecha."
+    ) in texto
+    assert "Stock del snapshot sintético" in texto
     assert "<nav" not in texto
     assert 'href="/inicio"' not in texto
     assert 'href="/predicciones"' not in texto
@@ -132,6 +138,7 @@ def test_opciones_catalogo_y_prediccion_por_la_nueva_api(cliente):
         "tiendas": [1, 2, 3],
         "fecha_corte": "2026-11-16",
         "fecha_minima": "2026-11-17",
+        "fecha_maxima": "2027-02-14",
         "datos_sinteticos": True,
     }
 
@@ -202,6 +209,30 @@ def test_endpoint_recomendacion_de_reposicion_y_contrato_json(cliente):
     assert respuesta.json["cantidad_recomendada"] == 23
     assert respuesta.json["requiere_reposicion"] is True
 
+    respuesta_basica = cliente.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-001",
+            "fecha": "2026-11-25",
+            "estrategia": "basica",
+        },
+    )
+    assert respuesta_basica.status_code == 200
+    assert respuesta_basica.json["cantidad_recomendada"] == 19
+
+    respuesta_fuera_de_rango = cliente.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-001",
+            "fecha": "2263-01-01",
+            "estrategia": "basica",
+        },
+    )
+    assert respuesta_fuera_de_rango.status_code == 400
+    assert "fecha máxima: 2027-02-14" in respuesta_fuera_de_rango.json["error"]
+
 
 @pytest.mark.parametrize(
     "datos,estado",
@@ -243,6 +274,8 @@ def test_endpoint_reposicion_rechaza_estrategias_y_payload_invalidos(
         ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-02-30"}, 400),
         ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-16"}, 400),
         ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-16T00:00:00"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2027-02-15"}, 400),
+        ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2263-01-01"}, 400),
         ({"tienda_id": 1, "producto_id": "BEB-001", "fecha": "2026-11-17", "modelo": "viejo"}, 400),
     ],
 )
@@ -250,6 +283,22 @@ def test_validaciones_de_prediccion(cliente, datos, estado):
     respuesta = cliente.post("/api/synthetic-v2/predicciones", json=datos)
     assert respuesta.status_code == estado
     assert "error" in respuesta.json
+    if datos["fecha"] in {"2027-02-15", "2263-01-01"}:
+        assert "fecha máxima: 2027-02-14" in respuesta.json["error"]
+
+
+def test_api_acepta_la_fecha_final_del_horizonte(cliente):
+    respuesta = cliente.post(
+        "/api/synthetic-v2/predicciones",
+        json={
+            "tienda_id": 1,
+            "producto_id": "BEB-001",
+            "fecha": "2027-02-14",
+        },
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json["fecha"] == "2027-02-14"
 
 
 def test_origen_y_formato_json(cliente):

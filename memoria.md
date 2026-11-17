@@ -23,6 +23,13 @@ El pipeline conserva MAE/RMSE del MLP y el baseline, junto con métricas por
 consulta por CLI; la web solo sirve la pantalla de predicción y reposición. La
 web no entrena al iniciar.
 
+Las predicciones de demostración están limitadas a 90 días posteriores al
+último día disponible del dataset (`2026-11-16`). Este límite define el alcance
+de la aplicación y no garantiza la precisión de las estimaciones. El inventario
+es un snapshot sintético con fecha de corte `2026-11-16`; las ventas posteriores
+a ese corte no se descuentan automáticamente y el stock no se proyecta hasta la
+fecha futura consultada.
+
 ## Arquitectura y patrones
 
 MVC y capas Controller–Service–Repository; inversión de dependencias con

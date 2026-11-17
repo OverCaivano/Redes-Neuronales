@@ -108,6 +108,7 @@ async function reproducirInicializacionSinEstrategias({incluirSelector = true} =
           tiendas: [1, 2, 3],
           fecha_corte: "2026-11-16",
           fecha_minima: "2026-11-17",
+          fecha_maxima: "2027-02-14",
         }),
       };
     }
@@ -178,6 +179,7 @@ async function reproducirInicializacionSinEstrategias({incluirSelector = true} =
   assert.equal(product.options.length, 30);
   assert.equal(date.value, "2026-11-17");
   assert.equal(date.min, "2026-11-17");
+  assert.equal(date.max, "2027-02-14");
   assert.equal(button.disabled, false);
   if (incluirSelector) {
     assert.equal(elements.get("strategy-select").disabled, true);
@@ -276,6 +278,7 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
           tiendas: [1, 2, 3],
           fecha_corte: "2026-11-16",
           fecha_minima: "2026-11-17",
+          fecha_maxima: "2027-02-14",
         }),
       };
     }

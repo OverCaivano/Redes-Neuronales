@@ -57,8 +57,9 @@ if (form) {
         `${item.nombre} (${item.producto_id}) · ${item.categoria}`,
       item => item.producto_id);
       fecha.min = opciones.fecha_minima;
+      fecha.max = opciones.fecha_maxima;
       fecha.value = opciones.fecha_minima;
-      rango.textContent = `Fecha mínima: ${opciones.fecha_minima}. Último registro sintético: ${opciones.fecha_corte}.`;
+      rango.textContent = `Fechas disponibles: ${opciones.fecha_minima} a ${opciones.fecha_maxima}. Último registro sintético: ${opciones.fecha_corte}.`;
       controles.forEach(control => { control.disabled = false; });
 
       if (estrategia) {

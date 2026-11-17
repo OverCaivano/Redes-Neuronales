@@ -57,8 +57,10 @@ comando de evaluación, fuera de Flask.
   `POST /api/synthetic-v2/reposiciones`: recomendación con estrategia básica o
   stock de seguridad; no modifica existencias ni efectúa compras.
 
-El período de prueba termina el `2026-11-16`; la predicción web acepta fechas
-posteriores. Las métricas se leen de
+El último día disponible es `2026-11-16`. La predicción web admite fechas desde
+el día siguiente (o la fecha actual, si es posterior) hasta 90 días después del
+corte del dataset. Ese máximo es un límite de alcance para la demostración, no
+una garantía de precisión. Las métricas se leen de
 `runs\synthetic_product_sales_v1\metricas.json`, el reporte guardado por el
 pipeline. Consultarlas y volver a evaluar el checkpoint:
 
@@ -113,4 +115,7 @@ necesario para ejecutar Flask.
 Las ventas e inventario son sintéticos. MAE/RMSE describen únicamente la prueba
 cronológica sintética y no prueban desempeño con ventas reales. La salida de
 reposiciones es una recomendación demostrativa: no es una compra, movimiento
-de stock ni asesoramiento operativo.
+de stock ni asesoramiento operativo. El inventario mostrado es un snapshot
+sintético con fecha de corte `2026-11-16`; no se descuentan automáticamente las
+ventas posteriores a ese corte, por lo que el stock no se proyecta a la fecha
+futura consultada.

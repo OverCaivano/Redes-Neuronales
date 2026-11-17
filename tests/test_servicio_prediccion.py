@@ -99,6 +99,7 @@ def test_opciones_y_fecha_minima_respetan_hoy_y_corte_del_dataset():
         "tiendas": (1, 2, 3),
         "fecha_corte": "2026-11-16",
         "fecha_minima": "2026-11-20",
+        "fecha_maxima": "2027-02-14",
     }
     with pytest.raises(SolicitudPrediccionInvalida, match="fecha mínima"):
         servicio.predecir(
@@ -106,6 +107,42 @@ def test_opciones_y_fecha_minima_respetan_hoy_y_corte_del_dataset():
             producto_id="BEB-001",
             fecha="2026-11-19",
         )
+
+
+def test_servicio_acepta_primera_y_ultima_fecha_del_horizonte():
+    servicio, motor = crear_servicio()
+
+    primera = servicio.predecir(
+        tienda_id=1,
+        producto_id="BEB-001",
+        fecha="2026-11-17",
+    )
+    ultima = servicio.predecir(
+        tienda_id=1,
+        producto_id="BEB-001",
+        fecha="2027-02-14",
+    )
+
+    assert primera.fecha == date(2026, 11, 17)
+    assert ultima.fecha == date(2027, 2, 14)
+    assert [consulta[2] for consulta in motor.consultas] == [
+        date(2026, 11, 17),
+        date(2027, 2, 14),
+    ]
+
+
+@pytest.mark.parametrize("fecha", ["2027-02-15", "2263-01-01"])
+def test_servicio_rechaza_fechas_posteriores_al_horizonte(fecha):
+    servicio, motor = crear_servicio()
+
+    with pytest.raises(SolicitudPrediccionInvalida, match="fecha máxima: 2027-02-14"):
+        servicio.predecir(
+            tienda_id=1,
+            producto_id="BEB-001",
+            fecha=fecha,
+        )
+
+    assert motor.consultas == []
 
 
 def test_servicio_no_importa_framework_persistencia_ni_pytorch():

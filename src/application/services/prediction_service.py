@@ -14,6 +14,9 @@ from src.domain.exceptions import (
 from src.domain.models import Prediccion
 
 
+HORIZONTE_PREDICCION_DIAS = 90
+
+
 class ServicioPrediccion:
     def __init__(
         self,
@@ -34,6 +37,7 @@ class ServicioPrediccion:
             "tiendas": self._motor_prediccion.tiendas_disponibles,
             "fecha_corte": fecha_corte.isoformat(),
             "fecha_minima": self._fecha_minima(fecha_corte).isoformat(),
+            "fecha_maxima": self._fecha_maxima(fecha_corte).isoformat(),
         }
 
     def predecir(self, *, tienda_id, producto_id, fecha):
@@ -47,6 +51,14 @@ class ServicioPrediccion:
                 "La fecha debe ser actual o futura y posterior al último día "
                 f"observado ({fecha_corte.isoformat()}); fecha mínima: "
                 f"{fecha_minima.isoformat()}"
+            )
+        fecha_maxima = self._fecha_maxima(fecha_corte)
+        if dia > fecha_maxima:
+            raise SolicitudPrediccionInvalida(
+                "La fecha excede el horizonte de demostración; fecha máxima: "
+                f"{fecha_maxima.isoformat()} "
+                f"({HORIZONTE_PREDICCION_DIAS} días posteriores al último día "
+                "disponible)."
             )
 
         producto = self._repositorio_productos.buscar_por_id(producto_id)
@@ -67,6 +79,10 @@ class ServicioPrediccion:
 
     def _fecha_minima(self, fecha_corte):
         return max(self._hoy(), fecha_corte + timedelta(days=1))
+
+    @staticmethod
+    def _fecha_maxima(fecha_corte):
+        return fecha_corte + timedelta(days=HORIZONTE_PREDICCION_DIAS)
 
     def _validar_tienda(self, tienda_id):
         if isinstance(tienda_id, bool) or not isinstance(tienda_id, Integral):

@@ -69,16 +69,19 @@ comando de evaluación, fuera de Flask.
 El último día disponible es `2026-11-16`. La predicción web admite fechas desde
 el día siguiente (o la fecha actual, si es posterior) hasta 90 días después del
 corte del dataset. Ese máximo es un límite de alcance para la demostración, no
-una garantía de precisión. Las métricas se leen de
-`runs\synthetic_product_sales_v1\metricas.json`, el reporte guardado por el
-pipeline. Consultarlas y volver a evaluar el checkpoint:
+una garantía de precisión.
 
 ```powershell
 .\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 ```
 
-El comando informa MAE/RMSE del MLP y el baseline en el test sintético; no
-entrena ni reemplaza el checkpoint.
+Durante el entrenamiento, el pipeline guarda el checkpoint y un reporte
+`runs\synthetic_product_sales_v1\metricas.json`, que conserva configuración,
+métricas e historial de validación por época. El comando `evaluate` no lee ese
+JSON: carga el checkpoint y los CSV, verifica que los datos coincidan con las
+huellas guardadas en el checkpoint y vuelve a calcular MAE/RMSE sobre el período
+de prueba. Informa los resultados del MLP y del baseline de media histórica por
+tienda y producto; no entrena ni modifica el checkpoint o el reporte JSON.
 
 ## Arquitectura
 
@@ -97,13 +100,19 @@ Flask / MVC
 - **Composición:** `src/composition.py` construye dependencias; los servicios
   reciben sus contratos por inyección.
 
-Los principios SOLID aparecen en la separación por responsabilidad (SRP), las
-estrategias reemplazables para extender la reposición (OCP/LSP), contratos
-pequeños por capacidad (ISP) e inversión de dependencias mediante Protocol e
-inyección (DIP). Repository aísla CSV/JSON; Adapter integra PyTorch detrás del
-puerto de predicción; Strategy selecciona el cálculo básico o con stock de
-seguridad. Singleton, Builder y Chain of Responsibility no aportan una
-necesidad concreta al flujo actual y no se implementan.
+En MVC, los Blueprints/controladores reciben las solicitudes, las plantillas
+Jinja presentan los datos y el dominio junto con los servicios de aplicación
+contiene el modelo y los casos de uso. SRP se refleja en la separación entre
+esas responsabilidades; OCP/LSP, en las estrategias de reposición
+intercambiables; ISP, en los contratos pequeños de `src/application/ports.py`;
+y DIP, en servicios que dependen de esos Protocol, ensamblados con
+implementaciones concretas en `src/composition.py`. Los dos Repository
+concretos son `RepositorioProductosCSV` y `RepositorioInventarioCSV`; aíslan
+la lectura y validación de los CSV de catálogo e inventario. No existe un
+repositorio JSON: el pipeline escribe `metricas.json`. Adapter envuelve la
+inferencia PyTorch detrás del puerto de predicción, y Strategy selecciona el
+cálculo básico o con stock de seguridad. Singleton, Builder y Chain of
+Responsibility no responden a una necesidad del flujo actual.
 
 ## Pruebas
 
@@ -127,4 +136,6 @@ reposiciones es una recomendación demostrativa: no es una compra, movimiento
 de stock ni asesoramiento operativo. El inventario mostrado es un snapshot
 sintético con fecha de corte `2026-11-16`; no se descuentan automáticamente las
 ventas posteriores a ese corte, por lo que el stock no se proyecta a la fecha
-futura consultada.
+futura consultada. El baseline es la media histórica de unidades por tienda y
+producto calculada con entrenamiento. La comparación MLP/baseline usa solo el
+test sintético: no demuestra desempeño con ventas reales.

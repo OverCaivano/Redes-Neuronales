@@ -43,6 +43,12 @@ existentes; para otro entrenamiento se requiere una carpeta de salida nueva.
 .\venv\Scripts\python.exe -m src.pipeline_productos evaluate
 ```
 
+El entrenamiento guarda el checkpoint y `metricas.json`, que contiene el
+reporte de esa corrida, incluidas las métricas y el historial de validación por
+época. `evaluate` no lee ese JSON: carga el checkpoint y los CSV, verifica sus
+huellas y vuelve a calcular MAE/RMSE del MLP y del baseline en el test. No
+entrena ni sobrescribe el checkpoint o el reporte.
+
 La aplicación usa el checkpoint configurado en `src/composition.py`.
 Flask también necesita el catálogo y el inventario generados en
 `data\synthetic`. Si se entrena en otra carpeta, actualizar allí las rutas
@@ -69,7 +75,9 @@ verificaron con Node.js 22.20.0. No es un requisito para iniciar Flask.
 - **Controller–Service–Repository:** los controladores no leen CSV, JSON ni
   checkpoints. Los servicios trabajan con contratos y reciben dependencias por
   inyección.
-- **Repository:** los repositorios aíslan los CSV sintéticos.
+- **Repository:** `RepositorioProductosCSV` y `RepositorioInventarioCSV`
+  aíslan los CSV sintéticos de catálogo e inventario. No hay un repositorio
+  JSON; `metricas.json` es escrito por el pipeline.
 - **Adapter:** el adaptador PyTorch implementa el puerto de predicción.
 - **Strategy:** `ReposicionBasica` y `ReposicionConSeguridad` comparten contrato
   y son intercambiables por el servicio de reposición.
@@ -83,10 +91,14 @@ verificaron con Node.js 22.20.0. No es un requisito para iniciar Flask.
 - Entrenamiento: `2023-01-01`–`2025-12-31`.
 - Validación: `2026-01-01`–`2026-06-30`.
 - Prueba: `2026-07-01`–`2026-11-16`.
-- El comando `.\venv\Scripts\python.exe -m src.pipeline_productos evaluate`
-  informa MAE/RMSE del MLP y del baseline sobre el test sintético, sin
-  reentrenar.
-- `metricas.json` conserva las métricas de evaluación y el historial de épocas.
-- Las pruebas y reportes corresponden exclusivamente a datos sintéticos.
+- La predicción web permite hasta 90 días posteriores al último día del
+  dataset; es un límite de alcance de la demostración, no una garantía de
+  precisión.
+- El inventario es un snapshot sintético al `2026-11-16`; no descuenta ventas
+  posteriores ni se proyecta a la fecha consultada.
+- `evaluate` muestra MAE/RMSE del MLP y del baseline de media histórica por
+  tienda-producto, recalculados sobre el test sintético. El JSON guarda el
+  reporte generado durante el entrenamiento; ninguna de estas métricas prueba
+  desempeño con ventas reales.
 - Las recomendaciones no modifican existencias ni realizan compras. Ningún
   dato mostrado representa ventas o inventario reales.

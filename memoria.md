@@ -13,15 +13,21 @@ El panel cubre 3 tiendas, 30 productos y 127.440 filas entre 2023-01-01 y
 - `src/pipeline_productos.py`: MLP PyTorch, partición cronológica,
   entrenamiento, evaluación y reporte por época.
 - `src/application/`: contratos y servicios independientes de Flask/CSV.
-- `src/infrastructure/`: repositorios CSV/JSON y adaptador PyTorch.
+- `src/infrastructure/`: repositorios CSV para catálogo e inventario, y
+  adaptador PyTorch.
 - `src/interfaces/web/controllers/`: Blueprints HTTP.
 - `src/composition.py`: ensamblado de dependencias y rutas de artefactos.
 - `src/web_app.py` y `web/`: aplicación Flask y presentación.
 
-El pipeline conserva MAE/RMSE del MLP y el baseline, junto con métricas por
-época, en `runs/synthetic_product_sales_v1/metricas.json`. La evaluación se
-consulta por CLI; la web solo sirve la pantalla de predicción y reposición. La
-web no entrena al iniciar.
+Al entrenar, el pipeline guarda configuración, métricas e historial de
+validación por época en `runs/synthetic_product_sales_v1/metricas.json`, junto
+con el checkpoint. El comando `python -m src.pipeline_productos evaluate` no
+lee ese JSON: carga el checkpoint y los CSV, comprueba las huellas de los datos
+y vuelve a calcular MAE/RMSE del MLP y del baseline sobre el período de prueba.
+El baseline es la media histórica por tienda y producto, calculada con datos
+de entrenamiento. La evaluación por CLI no entrena ni modifica esos artefactos;
+la web solo sirve la pantalla de predicción y reposición y tampoco entrena al
+iniciar.
 
 Las predicciones de demostración están limitadas a 90 días posteriores al
 último día disponible del dataset (`2026-11-16`). Este límite define el alcance
@@ -32,11 +38,21 @@ fecha futura consultada.
 
 ## Arquitectura y patrones
 
-MVC y capas Controller–Service–Repository; inversión de dependencias con
-Protocol e inyección; Repository para fuentes CSV/JSON; Adapter para la
-inferencia PyTorch; Strategy para las reglas de reposición básica y con stock
-de seguridad. No se usan Singleton, Builder ni Chain of Responsibility porque
-no son necesarios para los casos de uso actuales.
+MVC: los controladores Flask reciben las solicitudes, las plantillas presentan
+las vistas y dominio/servicios contienen las entidades y los casos de uso.
+Las implementaciones Repository existentes son `RepositorioProductosCSV` y
+`RepositorioInventarioCSV`; ambos aíslan CSV sintéticos. No existe un
+repositorio JSON: `metricas.json` lo escribe el pipeline de entrenamiento.
+Adapter integra la inferencia PyTorch detrás del puerto de predicción; Strategy
+permite intercambiar las reglas básica y con stock de seguridad. SRP se apoya
+en la separación de responsabilidades; OCP/LSP, en estrategias sustituibles;
+ISP, en Protocol pequeños; y DIP, en servicios que dependen de Protocol y en
+la composición que inyecta implementaciones. No se usan Singleton, Builder ni
+Chain of Responsibility porque no son necesarios para estos casos de uso.
+
+Las métricas comparan el MLP con el baseline sobre el test cronológico
+sintético. Describen únicamente esos datos y no garantizan desempeño con ventas
+reales.
 
 ## Reproducibilidad
 

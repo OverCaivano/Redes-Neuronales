@@ -20,6 +20,30 @@ def crear_blueprint_reposicion(servicio):
         url_prefix="/api/synthetic-v2",
     )
 
+    @blueprint.get("/reposicion/horizonte")
+    def obtener_horizonte():
+        if set(request.args) != {"tienda_id", "producto_id"}:
+            return jsonify(
+                error="Se requieren exactamente tienda_id y producto_id"
+            ), 400
+        try:
+            tienda_id = int(request.args["tienda_id"])
+        except ValueError:
+            return jsonify(error="tienda_id debe ser un entero"), 400
+        try:
+            horizonte = servicio.obtener_horizonte_reposicion(
+                tienda_id=tienda_id,
+                producto_id=request.args["producto_id"],
+            )
+        except SolicitudPrediccionInvalida as error:
+            return jsonify(error=str(error)), 400
+        except (TiendaNoEncontrada, InventarioNoEncontrado) as error:
+            return jsonify(error=str(error)), 404
+        except ErrorInventario:
+            current_app.logger.exception("No se pudo consultar el inventario sintético")
+            return jsonify(error="El inventario sintético no está disponible."), 503
+        return jsonify(horizonte)
+
     @blueprint.get("/reposicion/estrategias")
     def listar_estrategias():
         return jsonify(estrategias=servicio.listar_estrategias())

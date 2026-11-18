@@ -2,9 +2,10 @@
 
 import math
 from datetime import timedelta
+from numbers import Integral
 from typing import Mapping
 
-from src.application.date_validation import parsear_fecha
+from src.application.date_validation import calcular_fecha_maxima_reposicion
 from src.application.ports import (
     EstrategiaReposicion,
     PronosticadorVentas,
@@ -13,6 +14,8 @@ from src.application.ports import (
 from src.domain.exceptions import (
     EstrategiaReposicionNoEncontrada,
     InventarioNoEncontrado,
+    SolicitudPrediccionInvalida,
+    TiendaNoEncontrada,
 )
 from src.domain.models import RecomendacionReposicion
 
@@ -39,12 +42,40 @@ class ServicioReposicion:
             for codigo, estrategia in self._estrategias.items()
         )
 
+    def obtener_horizonte_reposicion(
+        self, *, tienda_id: int, producto_id: str
+    ) -> dict[str, int | str]:
+        if isinstance(tienda_id, bool) or not isinstance(tienda_id, Integral):
+            raise SolicitudPrediccionInvalida("tienda_id debe ser un entero")
+        tienda = int(tienda_id)
+        if tienda not in self._pronosticador.tiendas_disponibles:
+            raise TiendaNoEncontrada(f"tienda_id inexistente: {tienda}")
+        if not isinstance(producto_id, str) or not producto_id.strip():
+            raise SolicitudPrediccionInvalida(
+                "producto_id debe ser texto no vacío"
+            )
+        inventario = self._repositorio_inventario.buscar(
+            tienda_id=tienda,
+            producto_id=producto_id,
+        )
+        if inventario is None:
+            raise InventarioNoEncontrado(
+                "No existe inventario para la tienda y producto seleccionados"
+            )
+        return {
+            "tiempo_reposicion": inventario.tiempo_reposicion,
+            "fecha_maxima_reposicion": calcular_fecha_maxima_reposicion(
+                self._pronosticador.fecha_corte,
+                inventario.tiempo_reposicion,
+            ).isoformat(),
+        }
+
     def recomendar(self, *, tienda_id, producto_id, fecha, estrategia):
         if not isinstance(estrategia, str) or estrategia not in self._estrategias:
             raise EstrategiaReposicionNoEncontrada(
                 f"Estrategia de reposición no admitida: {estrategia}"
             )
-        fecha_inicio = parsear_fecha(fecha)
+        fecha_inicio = self._pronosticador.validar_fecha(fecha)
         pronostico_inicial = self._pronosticador.predecir(
             tienda_id=tienda_id,
             producto_id=producto_id,
@@ -57,6 +88,16 @@ class ServicioReposicion:
         if inventario is None:
             raise InventarioNoEncontrado(
                 "No existe inventario para la tienda y producto seleccionados"
+            )
+        fecha_maxima_reposicion = calcular_fecha_maxima_reposicion(
+            self._pronosticador.fecha_corte,
+            inventario.tiempo_reposicion,
+        )
+        if fecha_inicio > fecha_maxima_reposicion:
+            raise SolicitudPrediccionInvalida(
+                "La fecha seleccionada excede el horizonte de reposición para "
+                f"un plazo de {inventario.tiempo_reposicion} días; última fecha "
+                f"válida para reponer: {fecha_maxima_reposicion.isoformat()}."
             )
 
         predicciones = [pronostico_inicial]

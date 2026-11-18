@@ -174,6 +174,16 @@ def test_endpoint_recomendacion_de_reposicion_y_contrato_json(cliente):
         {"codigo": "seguridad", "nombre": "Reposición con stock de seguridad"},
     ]
 
+    horizonte = cliente.get(
+        "/api/synthetic-v2/reposicion/horizonte"
+        "?tienda_id=2&producto_id=BEB-001"
+    )
+    assert horizonte.status_code == 200
+    assert horizonte.json == {
+        "tiempo_reposicion": 3,
+        "fecha_maxima_reposicion": "2027-02-12",
+    }
+
     respuesta = cliente.post(
         "/api/synthetic-v2/reposiciones",
         json={
@@ -220,6 +230,30 @@ def test_endpoint_recomendacion_de_reposicion_y_contrato_json(cliente):
     )
     assert respuesta_basica.status_code == 200
     assert respuesta_basica.json["cantidad_recomendada"] == 19
+
+    prediccion_individual = cliente.post(
+        "/api/synthetic-v2/predicciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-001",
+            "fecha": "2027-02-13",
+        },
+    )
+    assert prediccion_individual.status_code == 200
+
+    reposicion_fuera_de_su_horizonte = cliente.post(
+        "/api/synthetic-v2/reposiciones",
+        json={
+            "tienda_id": 2,
+            "producto_id": "BEB-001",
+            "fecha": "2027-02-13",
+            "estrategia": "basica",
+        },
+    )
+    assert reposicion_fuera_de_su_horizonte.status_code == 400
+    assert "última fecha válida para reponer: 2027-02-12" in (
+        reposicion_fuera_de_su_horizonte.json["error"]
+    )
 
     respuesta_fuera_de_rango = cliente.post(
         "/api/synthetic-v2/reposiciones",
@@ -383,6 +417,7 @@ def test_frontend_usa_catalogo_y_api_sinteticos(cliente):
     assert 'fetch("/api/synthetic-v2/opciones")' in javascript
     assert 'fetch("/api/synthetic-v2/productos")' in javascript
     assert '"/api/synthetic-v2/reposicion/estrategias"' in javascript
+    assert "/api/synthetic-v2/reposicion/horizonte?" in javascript
     assert '"/api/synthetic-v2/reposiciones"' in javascript
     assert '"/api/synthetic-v2/predicciones"' in javascript
     assert "producto_id: producto.value" in javascript

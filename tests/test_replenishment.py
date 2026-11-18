@@ -1,9 +1,13 @@
-from datetime import date
+from datetime import date, timedelta
 import math
 
 import pandas as pd
 import pytest
 
+from src.application.date_validation import (
+    calcular_fecha_maxima_prediccion,
+    parsear_fecha,
+)
 from src.application.replenishment_strategies import (
     ReposicionBasica,
     ReposicionConSeguridad,
@@ -17,6 +21,7 @@ from src.domain.exceptions import (
     EstrategiaReposicionNoEncontrada,
     ErrorInventario,
     InventarioNoEncontrado,
+    SolicitudPrediccionInvalida,
 )
 from src.domain.models import Inventario, Prediccion, Producto
 from src.infrastructure.repositories.csv_inventory_repository import (
@@ -131,6 +136,16 @@ class PronosticadorFalso:
             unidades_estimadas=self.demanda_por_dia,
         )
 
+    def validar_fecha(self, fecha):
+        dia = parsear_fecha(fecha)
+        fecha_maxima = calcular_fecha_maxima_prediccion(self.fecha_corte)
+        if dia > fecha_maxima:
+            raise SolicitudPrediccionInvalida(
+                f"La fecha excede el horizonte de demostración; fecha máxima: "
+                f"{fecha_maxima.isoformat()}"
+            )
+        return dia
+
 
 def crear_servicio(inventario, pronosticador):
     estrategias = (ReposicionBasica(), ReposicionConSeguridad())
@@ -168,6 +183,114 @@ def test_servicio_predice_todos_los_dias_inclusive_y_no_modifica_stock():
     assert resultado.cantidad_recomendada == 5
     assert resultado.requiere_reposicion is True
     assert inventario.stock_actual == stock_original
+
+
+@pytest.mark.parametrize(
+    "tiempo_reposicion,fecha_maxima",
+    [
+        (1, "2027-02-14"),
+        (4, "2027-02-11"),
+        (7, "2027-02-08"),
+    ],
+)
+def test_horizonte_de_reposicion_depende_del_plazo(
+    tiempo_reposicion, fecha_maxima
+):
+    servicio = crear_servicio(
+        crear_inventario(tiempo_reposicion=tiempo_reposicion),
+        PronosticadorFalso(),
+    )
+
+    horizonte = servicio.obtener_horizonte_reposicion(
+        tienda_id=2,
+        producto_id="BEB-002",
+    )
+
+    assert horizonte == {
+        "tiempo_reposicion": tiempo_reposicion,
+        "fecha_maxima_reposicion": fecha_maxima,
+    }
+
+
+@pytest.mark.parametrize(
+    "tiempo_reposicion,fecha_maxima",
+    [
+        (1, date(2027, 2, 14)),
+        (4, date(2027, 2, 11)),
+        (7, date(2027, 2, 8)),
+    ],
+)
+def test_ultima_fecha_de_reposicion_predice_cobertura_inclusiva(
+    tiempo_reposicion, fecha_maxima
+):
+    pronosticador = PronosticadorFalso()
+    servicio = crear_servicio(
+        crear_inventario(tiempo_reposicion=tiempo_reposicion),
+        pronosticador,
+    )
+
+    resultado = servicio.recomendar(
+        tienda_id=2,
+        producto_id="BEB-002",
+        fecha=fecha_maxima,
+        estrategia="basica",
+    )
+
+    assert len(resultado.predicciones) == tiempo_reposicion
+    assert pronosticador.consultas[0][2] == fecha_maxima
+    assert pronosticador.consultas[-1][2] == date(2027, 2, 14)
+
+
+@pytest.mark.parametrize(
+    "tiempo_reposicion,fecha_maxima",
+    [
+        (1, date(2027, 2, 14)),
+        (4, date(2027, 2, 11)),
+        (7, date(2027, 2, 8)),
+    ],
+)
+def test_dia_posterior_al_maximo_de_reposicion_se_rechaza(
+    tiempo_reposicion, fecha_maxima
+):
+    pronosticador = PronosticadorFalso()
+    servicio = crear_servicio(
+        crear_inventario(tiempo_reposicion=tiempo_reposicion),
+        pronosticador,
+    )
+
+    fecha_siguiente = fecha_maxima + timedelta(days=1)
+    if fecha_siguiente > date(2027, 2, 14):
+        mensaje = "fecha máxima: 2027-02-14"
+    else:
+        mensaje = f"última fecha válida para reponer: {fecha_maxima.isoformat()}"
+    with pytest.raises(SolicitudPrediccionInvalida, match=mensaje):
+        servicio.recomendar(
+            tienda_id=2,
+            producto_id="BEB-002",
+            fecha=fecha_siguiente,
+            estrategia="basica",
+        )
+
+    if fecha_siguiente > date(2027, 2, 14):
+        assert pronosticador.consultas == []
+    else:
+        assert len(pronosticador.consultas) == 1
+        assert pronosticador.consultas[0][2] == fecha_siguiente
+
+
+def test_fecha_extremadamente_lejana_no_se_solicita_al_pronosticador():
+    pronosticador = PronosticadorFalso()
+    servicio = crear_servicio(crear_inventario(), pronosticador)
+
+    with pytest.raises(SolicitudPrediccionInvalida, match="fecha máxima"):
+        servicio.recomendar(
+            tienda_id=2,
+            producto_id="BEB-002",
+            fecha="2263-01-01",
+            estrategia="basica",
+        )
+
+    assert pronosticador.consultas == []
 
 
 def test_servicio_indica_cuando_stock_alcanza_y_valida_estrategia():

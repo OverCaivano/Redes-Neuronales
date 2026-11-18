@@ -15,6 +15,9 @@ if (form) {
   const controles = [tienda, producto, fecha, boton];
   let estrategiaDisponible = false;
   let ocupado = false;
+  let actualizandoHorizonte = false;
+  let solicitudHorizonte = 0;
+  let fechaMaximaPrediccion = "";
 
   function mostrarEstado(texto, error = false) {
     estado.textContent = texto;
@@ -31,6 +34,71 @@ if (form) {
     if (resultado) resultado.hidden = true;
     if (resultadoReposicion) resultadoReposicion.hidden = true;
     mostrarEstado("Seleccioná tienda, producto y fecha para generar una predicción.");
+  }
+
+  async function actualizarHorizonteReposicion() {
+    const idSolicitud = ++solicitudHorizonte;
+    const tiendaSeleccionada = tienda.value;
+    const productoSeleccionado = producto.value;
+    actualizandoHorizonte = true;
+    fecha.disabled = true;
+    boton.disabled = true;
+    try {
+      const parametros = new URLSearchParams({
+        tienda_id: tiendaSeleccionada,
+        producto_id: productoSeleccionado,
+      });
+      const respuesta = await fetch(
+        `/api/synthetic-v2/reposicion/horizonte?${parametros}`,
+      );
+      const horizonte = await respuesta.json();
+      if (idSolicitud !== solicitudHorizonte) return false;
+      if (!respuesta.ok) {
+        throw new Error(
+          horizonte.error || "No se pudo consultar el plazo de reposición.",
+        );
+      }
+      if (
+        tienda.value !== tiendaSeleccionada ||
+        producto.value !== productoSeleccionado
+      ) {
+        return false;
+      }
+      fecha.max = horizonte.fecha_maxima_reposicion;
+      if (fecha.value && fecha.value > fecha.max) fecha.value = fecha.max;
+      rango.textContent =
+        `Rango de reposición para tienda ${tiendaSeleccionada} y producto ` +
+        `${productoSeleccionado} (plazo ${horizonte.tiempo_reposicion} días): ` +
+        `${fecha.min} a ${fecha.max}. Predicción individual disponible hasta ` +
+        `${fechaMaximaPrediccion}.`;
+      return true;
+    } catch (error) {
+      if (idSolicitud !== solicitudHorizonte) return false;
+      estrategiaDisponible = false;
+      if (estrategia) {
+        estrategia.disabled = true;
+        asignarOpciones(estrategia, [], item => String(item));
+      }
+      fecha.max = fechaMaximaPrediccion;
+      rango.textContent =
+        `Predicción individual disponible: ${fecha.min} a ` +
+        `${fechaMaximaPrediccion}.`;
+      boton.textContent = "Generar predicción";
+      if (error) {
+        mostrarEstado(
+          `No se pudo determinar el límite de reposición (${error.message}). ` +
+          "La predicción individual sigue disponible.",
+          true,
+        );
+      }
+      return false;
+    } finally {
+      if (idSolicitud === solicitudHorizonte) {
+        actualizandoHorizonte = false;
+        fecha.disabled = false;
+        boton.disabled = false;
+      }
+    }
   }
 
   async function cargarOpciones() {
@@ -57,9 +125,12 @@ if (form) {
         `${item.nombre} (${item.producto_id}) · ${item.categoria}`,
       item => item.producto_id);
       fecha.min = opciones.fecha_minima;
-      fecha.max = opciones.fecha_maxima;
+      fechaMaximaPrediccion = opciones.fecha_maxima;
+      fecha.max = fechaMaximaPrediccion;
       fecha.value = opciones.fecha_minima;
-      rango.textContent = `Fechas disponibles: ${opciones.fecha_minima} a ${opciones.fecha_maxima}. Último registro sintético: ${opciones.fecha_corte}.`;
+      rango.textContent =
+        `Predicción individual: ${opciones.fecha_minima} a ` +
+        `${fechaMaximaPrediccion}. Último registro sintético: ${opciones.fecha_corte}.`;
       controles.forEach(control => { control.disabled = false; });
 
       if (estrategia) {
@@ -90,13 +161,19 @@ if (form) {
         }
       }
 
+      let horizonteDisponible = true;
+      if (estrategiaDisponible) {
+        horizonteDisponible = await actualizarHorizonteReposicion();
+      }
       limpiarResultado();
       boton.textContent = estrategiaDisponible
         ? "Predecir y calcular reposición"
         : "Generar predicción";
       if (!estrategiaDisponible && estrategia) {
         mostrarEstado(
-          "La predicción individual está disponible; las estrategias de reposición no se pudieron cargar.",
+          horizonteDisponible
+            ? "La predicción individual está disponible; las estrategias de reposición no se pudieron cargar."
+            : "No se pudo determinar el límite de reposición. La predicción individual sigue disponible.",
           true,
         );
       }
@@ -114,14 +191,22 @@ if (form) {
     }
   }
 
-  for (const control of [tienda, producto, fecha, estrategia]) {
+  for (const control of [fecha, estrategia]) {
     if (control) control.addEventListener("change", limpiarResultado);
+  }
+  for (const control of [tienda, producto]) {
+    if (control) {
+      control.addEventListener("change", async () => {
+        limpiarResultado();
+        if (estrategiaDisponible) await actualizarHorizonteReposicion();
+      });
+    }
   }
   cargarOpciones();
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    if (ocupado || !form.reportValidity()) return;
+    if (ocupado || actualizandoHorizonte || !form.reportValidity()) return;
     ocupado = true;
     form.setAttribute("aria-busy", "true");
     controles.forEach(control => { control.disabled = true; });

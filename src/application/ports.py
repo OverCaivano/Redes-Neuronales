@@ -35,9 +35,20 @@ class RepositorioInventario(Protocol):
 
 
 class PronosticadorVentas(Protocol):
+    @property
+    def fecha_corte(self) -> date:
+        ...
+
+    @property
+    def tiendas_disponibles(self) -> tuple[int, ...]:
+        ...
+
     def predecir(
         self, *, tienda_id: int, producto_id: str, fecha: date | str
     ) -> Prediccion:
+        ...
+
+    def validar_fecha(self, fecha: date | str) -> date:
         ...
 
 

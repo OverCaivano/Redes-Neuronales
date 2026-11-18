@@ -5,16 +5,17 @@ from numbers import Integral
 from typing import Callable
 
 from src.application.ports import MotorPrediccion, RepositorioProductos
-from src.application.date_validation import parsear_fecha
+from src.application.date_validation import (
+    HORIZONTE_PREDICCION_DIAS,
+    calcular_fecha_maxima_prediccion,
+    parsear_fecha,
+)
 from src.domain.exceptions import (
     ProductoNoEncontrado,
     SolicitudPrediccionInvalida,
     TiendaNoEncontrada,
 )
 from src.domain.models import Prediccion
-
-
-HORIZONTE_PREDICCION_DIAS = 90
 
 
 class ServicioPrediccion:
@@ -31,18 +32,24 @@ class ServicioPrediccion:
     def listar_productos(self):
         return self._repositorio_productos.listar()
 
+    @property
+    def fecha_corte(self) -> date:
+        return self._motor_prediccion.fecha_corte
+
+    @property
+    def tiendas_disponibles(self) -> tuple[int, ...]:
+        return self._motor_prediccion.tiendas_disponibles
+
     def obtener_opciones(self):
         fecha_corte = self._motor_prediccion.fecha_corte
         return {
             "tiendas": self._motor_prediccion.tiendas_disponibles,
             "fecha_corte": fecha_corte.isoformat(),
             "fecha_minima": self._fecha_minima(fecha_corte).isoformat(),
-            "fecha_maxima": self._fecha_maxima(fecha_corte).isoformat(),
+            "fecha_maxima": calcular_fecha_maxima_prediccion(fecha_corte).isoformat(),
         }
 
-    def predecir(self, *, tienda_id, producto_id, fecha):
-        tienda = self._validar_tienda(tienda_id)
-        producto_id = self._validar_producto_id(producto_id)
+    def validar_fecha(self, fecha: date | str) -> date:
         dia = self._parsear_fecha(fecha)
         fecha_corte = self._motor_prediccion.fecha_corte
         fecha_minima = self._fecha_minima(fecha_corte)
@@ -52,7 +59,7 @@ class ServicioPrediccion:
                 f"observado ({fecha_corte.isoformat()}); fecha mínima: "
                 f"{fecha_minima.isoformat()}"
             )
-        fecha_maxima = self._fecha_maxima(fecha_corte)
+        fecha_maxima = calcular_fecha_maxima_prediccion(fecha_corte)
         if dia > fecha_maxima:
             raise SolicitudPrediccionInvalida(
                 "La fecha excede el horizonte de demostración; fecha máxima: "
@@ -60,6 +67,12 @@ class ServicioPrediccion:
                 f"({HORIZONTE_PREDICCION_DIAS} días posteriores al último día "
                 "disponible)."
             )
+        return dia
+
+    def predecir(self, *, tienda_id, producto_id, fecha):
+        tienda = self._validar_tienda(tienda_id)
+        producto_id = self._validar_producto_id(producto_id)
+        dia = self.validar_fecha(fecha)
 
         producto = self._repositorio_productos.buscar_por_id(producto_id)
         if producto is None:
@@ -79,10 +92,6 @@ class ServicioPrediccion:
 
     def _fecha_minima(self, fecha_corte):
         return max(self._hoy(), fecha_corte + timedelta(days=1))
-
-    @staticmethod
-    def _fecha_maxima(fecha_corte):
-        return fecha_corte + timedelta(days=HORIZONTE_PREDICCION_DIAS)
 
     def _validar_tienda(self, tienda_id):
         if isinstance(tienda_id, bool) or not isinstance(tienda_id, Integral):

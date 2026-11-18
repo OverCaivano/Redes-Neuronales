@@ -34,7 +34,14 @@ Las predicciones de demostración están limitadas a 90 días posteriores al
 de la aplicación y no garantiza la precisión de las estimaciones. El inventario
 es un snapshot sintético con fecha de corte `2026-11-16`; las ventas posteriores
 a ese corte no se descuentan automáticamente y el stock no se proyecta hasta la
-fecha futura consultada.
+fecha futura consultada. El horizonte de reposición es más corto cuando el
+producto tiene un plazo de entrega mayor: como el plazo incluye la fecha
+seleccionada, su último inicio válido es la fecha máxima de predicción menos
+`tiempo_reposicion - 1` días. Así, los plazos de 1, 4 y 7 días permiten iniciar,
+respectivamente, hasta el máximo general, 3 días antes y 6 días antes. La
+validación ocurre en el servicio de aplicación; la interfaz consulta ese límite
+por tienda y producto y conserva el máximo general para predicciones
+individuales.
 
 ## Arquitectura y patrones
 

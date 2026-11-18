@@ -130,6 +130,15 @@ async function reproducirInicializacionSinEstrategias({incluirSelector = true} =
         json: async () => ({error: "No se encontró la ruta."}),
       };
     }
+    if (url.includes("/reposicion/horizonte?")) {
+      return {
+        ok: true,
+        json: async () => ({
+          tiempo_reposicion: 7,
+          fecha_maxima_reposicion: "2027-02-08",
+        }),
+      };
+    }
     if (url.endsWith("/predicciones")) {
       payloads.push(JSON.parse(init.body));
       return {
@@ -167,6 +176,7 @@ async function reproducirInicializacionSinEstrategias({incluirSelector = true} =
       String,
       JSON,
       Error,
+      URLSearchParams,
     },
   );
   await new Promise(resolve => setImmediate(resolve));
@@ -304,6 +314,23 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
         }),
       };
     }
+    if (url.includes("/reposicion/horizonte?")) {
+      const parametros = new URLSearchParams(url.split("?")[1]);
+      const clave = `${parametros.get("tienda_id")}:${parametros.get("producto_id")}`;
+      const horizontes = {
+        "1:BEB-001": {tiempo: 7, fecha: "2027-02-08"},
+        "2:BEB-001": {tiempo: 4, fecha: "2027-02-11"},
+        "2:BEB-002": {tiempo: 3, fecha: "2027-02-12"},
+      };
+      const horizonte = horizontes[clave];
+      return {
+        ok: true,
+        json: async () => ({
+          tiempo_reposicion: horizonte.tiempo,
+          fecha_maxima_reposicion: horizonte.fecha,
+        }),
+      };
+    }
     if (url.endsWith("/reposiciones")) {
       payloads.push(JSON.parse(init.body));
       return {
@@ -331,6 +358,7 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
       String,
       JSON,
       Error,
+      URLSearchParams,
     },
   );
   await new Promise(resolve => setImmediate(resolve));
@@ -342,8 +370,17 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
   assert.equal(store.options[1].value, "2");
   assert.equal(product.options[1].value, "BEB-002");
   assert.equal(strategy.options[0].value, "basica");
+  assert.equal(date.max, "2027-02-08");
+  assert.match(elements.get("rango-fechas").textContent, /Predicción individual disponible hasta 2027-02-14/);
+  date.value = "2027-02-14";
   store.selectedIndex = 1;
+  await store.listeners.change();
+  assert.equal(date.max, "2027-02-11");
+  assert.equal(date.value, "2027-02-11");
   product.selectedIndex = 1;
+  await product.listeners.change();
+  assert.equal(date.max, "2027-02-12");
+  assert.equal(date.value, "2027-02-11");
   strategy.selectedIndex = 0;
   date.value = "2026-11-25";
 
@@ -397,6 +434,9 @@ test("BEB-002 selection renders predictions and both replenishment outcomes", as
     "/api/synthetic-v2/opciones",
     "/api/synthetic-v2/productos",
     "/api/synthetic-v2/reposicion/estrategias",
+    "/api/synthetic-v2/reposicion/horizonte?tienda_id=1&producto_id=BEB-001",
+    "/api/synthetic-v2/reposicion/horizonte?tienda_id=2&producto_id=BEB-001",
+    "/api/synthetic-v2/reposicion/horizonte?tienda_id=2&producto_id=BEB-002",
     "/api/synthetic-v2/reposiciones",
     "/api/synthetic-v2/reposiciones",
     "/api/synthetic-v2/reposiciones",

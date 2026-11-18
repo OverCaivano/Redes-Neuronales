@@ -63,8 +63,20 @@ comando de evaluación, fuera de Flask.
 - `POST /api/synthetic-v2/predicciones`: recibe `tienda_id`, `producto_id` y
   fecha ISO `AAAA-MM-DD`.
 - `GET /api/synthetic-v2/reposicion/estrategias` y
-  `POST /api/synthetic-v2/reposiciones`: recomendación con estrategia básica o
+  `GET /api/synthetic-v2/reposicion/horizonte?tienda_id=...&producto_id=...`
+  para consultar el plazo y la última fecha válida de reposición para esa
+  combinación.
+- `POST /api/synthetic-v2/reposiciones`: recomendación con estrategia básica o
   stock de seguridad; no modifica existencias ni efectúa compras.
+
+El horizonte general de predicción individual llega hasta 90 días después del
+corte. Para reponer, la fecha de inicio debe dejar lugar a todo el plazo del
+producto dentro de ese horizonte: `última fecha válida = fecha máxima de predicción -
+(tiempo de reposición - 1) días`. El plazo incluye el día
+seleccionado. Por ejemplo, para un plazo de 4 días, la fecha de inicio debe ser
+como máximo 3 días anterior al máximo general. La interfaz actualiza el límite
+al cambiar tienda o producto; ese máximo específico no reemplaza ni amplía el
+horizonte de predicción individual.
 
 El último día disponible es `2026-11-16`. La predicción web admite fechas desde
 el día siguiente (o la fecha actual, si es posterior) hasta 90 días después del
